@@ -1,703 +1,1448 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>تطبيق السائق — استلام وتسليم الطلبات</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: { cairo: ['Cairo','sans-serif'] },
-        colors: {
-          primary: { DEFAULT:'#78B145', dark:'#5C8F34', light:'#E4F0D9' },
-          ink: { DEFAULT:'#2C3E50', soft:'#5C6B7A' },
-          accent: { DEFAULT:'#F4B41A', dark:'#D89A0E' },
-          mapbg: '#EAF1E2',
-          mapline: '#D7E4CB',
-        },
-        boxShadow: {
-          soft: '0 4px 14px rgba(44,62,80,0.12)',
-          card: '0 12px 32px rgba(44,62,80,0.16)',
-        },
-        borderRadius: { '2xl2': '26px' }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>تطبيق المندوب</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { cairo: ['Cairo', 'sans-serif'] },
+          colors: {
+            primary: { DEFAULT: '#78B145', dark: '#5C8F34', light: '#E4F0D9' },
+            ink: { DEFAULT: '#2C3E50', soft: '#5C6B7A' },
+            accent: { DEFAULT: '#F4B41A', dark: '#D89A0E' },
+            mapbg: '#EAF1E2',
+            mapline: '#D7E4CB',
+          },
+          boxShadow: {
+            soft: '0 4px 14px rgba(44,62,80,0.12)',
+            card: '0 12px 32px rgba(44,62,80,0.16)',
+          },
+          borderRadius: { '2xl2': '26px' }
+        }
       }
     }
-  }
-</script>
-<style>
-  html,body{ font-family:'Cairo',sans-serif; }
-  *{ -webkit-tap-highlight-color:transparent; }
+  </script>
+  <style>
+    html,
+    body {
+      font-family: 'Cairo', sans-serif;
+    }
 
-  /* screen fade switching */
-  .screen{ position:absolute; inset:0; opacity:0; visibility:hidden; transition:opacity .22s ease; pointer-events:none; }
-  .screen.active{ opacity:1; visibility:visible; pointer-events:auto; }
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
 
-  /* bottom sheet drag */
-  .sheet{ touch-action:none; transform:translateY(0); }
+    /* screen fade switching */
+    .screen {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .22s ease;
+      pointer-events: none;
+    }
 
-  /* subscreen slide up */
-  .subscreen{ transform:translateY(100%); transition:transform .32s cubic-bezier(.22,.85,.32,1); }
-  .subscreen.open{ transform:translateY(0); }
+    .screen.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
 
-  /* side menu slide */
-  .side-menu{ transform:translateX(-100%); transition:transform .3s cubic-bezier(.2,.8,.2,1); }
-  .side-menu.open{ transform:translateX(0); }
+    /* bottom sheet drag */
+    .sheet {
+      touch-action: none;
+      transform: translateY(0);
+    }
 
-  /* support sheet + camera + toast */
-  .support-sheet{ bottom:-260px; transition:bottom .3s cubic-bezier(.2,.8,.2,1); }
-  .support-sheet.open{ bottom:24px; }
-  .camera-modal{ opacity:0; pointer-events:none; transition:opacity .25s ease; }
-  .camera-modal.open{ opacity:1; pointer-events:auto; }
-  .flash{ opacity:0; }
-  .flash.fire{ animation:flashfire .35s ease; }
-  @keyframes flashfire{ 0%{opacity:0;} 15%{opacity:1;} 100%{opacity:0;} }
-  .cam-confirm{ opacity:0; pointer-events:none; transition:opacity .3s ease; }
-  .cam-confirm.show{ opacity:1; }
-  .cam-check{ transform:scale(0.6); opacity:0; transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s ease; }
-  .cam-confirm.show .cam-check{ transform:scale(1); opacity:1; }
-  .toast{ opacity:0; transform:translate(-50%,-14px); transition:opacity .25s ease, transform .25s ease; pointer-events:none; }
-  .toast.show{ opacity:1; transform:translate(-50%,0); }
-  .backdrop{ opacity:0; pointer-events:none; transition:opacity .25s ease; }
-  .backdrop.show{ opacity:1; pointer-events:auto; }
+    /* subscreen slide up */
+    .subscreen {
+      transform: translateY(100%);
+      transition: transform .32s cubic-bezier(.22, .85, .32, 1);
+    }
 
-  /* status strip phase color transition */
-  .status-strip, .status-strip .dot, .status-strip span{ transition:background-color .35s ease, color .35s ease, box-shadow .35s ease; }
+    .subscreen.open {
+      transform: translateY(0);
+    }
 
-  /* toggle switch */
-  .switch{ width:44px; height:26px; border-radius:20px; background:#DCE1D6; position:relative; cursor:pointer; transition:background .25s; flex-shrink:0; }
-  .switch.on{ background:#78B145; }
-  .switch .knob{ position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); transition:transform .25s; }
-  .switch.on .knob{ transform:translateX(18px); }
+    /* side menu slide */
+    .side-menu {
+      transform: translateX(-100%);
+      transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+    }
 
-  /* radio dot */
-  .radio-dot{ width:20px; height:20px; border-radius:50%; border:2px solid #C9D2C0; flex-shrink:0; position:relative; }
-  .radio-card.selected .radio-dot{ border-color:#78B145; }
-  .radio-card.selected .radio-dot::after{ content:''; position:absolute; inset:3px; border-radius:50%; background:#78B145; }
+    .side-menu.open {
+      transform: translateX(0);
+    }
 
-  /* language check circle */
-  .lang-check{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:transparent; }
-  .lang-row.selected .lang-check{ background:#78B145; }
+    /* support sheet + camera + toast */
+    .support-sheet {
+      bottom: -260px;
+      transition: bottom .3s cubic-bezier(.2, .8, .2, 1);
+    }
 
-  ::-webkit-scrollbar{ width:0; height:0; }
-</style>
+    .support-sheet.open {
+      bottom: 24px;
+    }
+
+    .camera-modal {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .camera-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .flash {
+      opacity: 0;
+    }
+
+    .flash.fire {
+      animation: flashfire .35s ease;
+    }
+
+    @keyframes flashfire {
+      0% {
+        opacity: 0;
+      }
+
+      15% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .cam-confirm {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+
+    .cam-confirm.show {
+      opacity: 1;
+    }
+
+    .cam-check {
+      transform: scale(0.6);
+      opacity: 0;
+      transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), opacity .3s ease;
+    }
+
+    .cam-confirm.show .cam-check {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .toast {
+      opacity: 0;
+      transform: translate(-50%, -14px);
+      transition: opacity .25s ease, transform .25s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* status strip phase color transition */
+    .status-strip,
+    .status-strip .dot,
+    .status-strip span {
+      transition: background-color .35s ease, color .35s ease, box-shadow .35s ease;
+    }
+
+    /* toggle switch */
+    .switch {
+      width: 44px;
+      height: 26px;
+      border-radius: 20px;
+      background: #DCE1D6;
+      position: relative;
+      cursor: pointer;
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+
+    .switch.on {
+      background: #78B145;
+    }
+
+    .switch .knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, .2);
+      transition: transform .25s;
+    }
+
+    .switch.on .knob {
+      transform: translateX(18px);
+    }
+
+    /* radio dot */
+    .radio-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #C9D2C0;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .radio-card.selected .radio-dot {
+      border-color: #78B145;
+    }
+
+    .radio-card.selected .radio-dot::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: #78B145;
+    }
+
+    /* language check circle */
+    .lang-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+    }
+
+    .lang-row.selected .lang-check {
+      background: #78B145;
+    }
+
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+  </style>
 </head>
+
 <body class="bg-[#DCE6D2] font-cairo text-ink min-h-screen flex items-center justify-center p-0 sm:p-6">
 
-<div class="relative w-full sm:max-w-[430px] h-screen sm:h-[860px] bg-mapbg overflow-hidden sm:rounded-3xl sm:shadow-card" id="device">
+  <div
+    class="relative w-full sm:max-w-[430px] h-screen sm:h-[860px] bg-mapbg overflow-hidden sm:rounded-3xl sm:shadow-card"
+    id="device">
 
-  <div class="absolute inset-0" id="screens-wrap">
+    <div class="absolute inset-0" id="screens-wrap">
 
-    <!-- ===================== HOME ===================== -->
-    <div class="screen active" id="screen-home">
-      <div class="absolute inset-0 overflow-hidden">
-        <svg viewBox="0 0 390 820" xmlns="http://www.w3.org/2000/svg" class="w-full h-full block" preserveAspectRatio="xMidYMid slice">
-          <rect width="390" height="820" fill="#EAF1E2"/>
-          <path d="M0,90 Q90,40 200,95 Q260,120 220,190 Q140,220 40,170 Q-10,140 0,90 Z" fill="#DCE9CE"/>
-          <g fill="#DEE9D3" stroke="#D2E1C6" stroke-width="1">
-            <rect x="34" y="240" width="70" height="56" rx="6"/>
-            <rect x="120" y="260" width="54" height="40" rx="6"/>
-            <rect x="230" y="230" width="80" height="60" rx="6"/>
-            <rect x="60" y="420" width="60" height="70" rx="6"/>
-            <rect x="180" y="440" width="90" height="50" rx="6"/>
-            <rect x="290" y="400" width="70" height="80" rx="6"/>
-            <rect x="30" y="560" width="90" height="60" rx="6"/>
-            <rect x="200" y="600" width="60" height="60" rx="6"/>
-            <rect x="270" y="560" width="90" height="46" rx="6"/>
-            <rect x="90" y="680" width="70" height="55" rx="6"/>
-          </g>
-          <g stroke="#FFFFFF" stroke-linecap="round" fill="none">
-            <path d="M0,210 H390" stroke-width="16"/>
-            <path d="M0,380 H390" stroke-width="12"/>
-            <path d="M0,540 H390" stroke-width="14"/>
-            <path d="M0,700 H390" stroke-width="12"/>
-            <path d="M60,0 V820" stroke-width="14"/>
-            <path d="M195,0 V820" stroke-width="18"/>
-            <path d="M330,0 V820" stroke-width="12"/>
-          </g>
-          <g stroke="#D7E4CB" stroke-width="1.5" stroke-dasharray="6 7" fill="none">
-            <path d="M0,210 H390"/>
-            <path d="M195,0 V820"/>
-          </g>
-          <path id="routePath" d="M195,540 C170,470 230,430 210,360 C195,310 150,300 150,255" stroke="#78B145" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="2 11" fill="none"/>
-          <circle cx="195" cy="540" r="9" fill="#2C3E50"/>
-          <circle cx="195" cy="540" r="15" fill="none" stroke="#2C3E50" stroke-width="2" opacity="0.35"/>
-          <g id="destPin" transform="translate(150,255)">
-            <path d="M0,-30 C15,-30 25,-19 25,-6 C25,12 0,30 0,30 C0,30 -25,12 -25,-6 C-25,-19 -15,-30 0,-30 Z" fill="#78B145"/>
-            <circle cx="0" cy="-6" r="9" fill="#fff"/>
-          </g>
-        </svg>
+      <!-- ===================== HOME ===================== -->
+      <div class="screen active" id="screen-home">
+        <div class="absolute inset-0 overflow-hidden">
+          <svg viewBox="0 0 390 820" xmlns="http://www.w3.org/2000/svg" class="w-full h-full block"
+            preserveAspectRatio="xMidYMid slice">
+            <rect width="390" height="820" fill="#EAF1E2" />
+            <path d="M0,90 Q90,40 200,95 Q260,120 220,190 Q140,220 40,170 Q-10,140 0,90 Z" fill="#DCE9CE" />
+            <g fill="#DEE9D3" stroke="#D2E1C6" stroke-width="1">
+              <rect x="34" y="240" width="70" height="56" rx="6" />
+              <rect x="120" y="260" width="54" height="40" rx="6" />
+              <rect x="230" y="230" width="80" height="60" rx="6" />
+              <rect x="60" y="420" width="60" height="70" rx="6" />
+              <rect x="180" y="440" width="90" height="50" rx="6" />
+              <rect x="290" y="400" width="70" height="80" rx="6" />
+              <rect x="30" y="560" width="90" height="60" rx="6" />
+              <rect x="200" y="600" width="60" height="60" rx="6" />
+              <rect x="270" y="560" width="90" height="46" rx="6" />
+              <rect x="90" y="680" width="70" height="55" rx="6" />
+            </g>
+            <g stroke="#FFFFFF" stroke-linecap="round" fill="none">
+              <path d="M0,210 H390" stroke-width="16" />
+              <path d="M0,380 H390" stroke-width="12" />
+              <path d="M0,540 H390" stroke-width="14" />
+              <path d="M0,700 H390" stroke-width="12" />
+              <path d="M60,0 V820" stroke-width="14" />
+              <path d="M195,0 V820" stroke-width="18" />
+              <path d="M330,0 V820" stroke-width="12" />
+            </g>
+            <g stroke="#D7E4CB" stroke-width="1.5" stroke-dasharray="6 7" fill="none">
+              <path d="M0,210 H390" />
+              <path d="M195,0 V820" />
+            </g>
+            <path id="routePath" d="M195,540 C170,470 230,430 210,360 C195,310 150,300 150,255" stroke="#78B145"
+              stroke-width="4.5" stroke-linecap="round" stroke-dasharray="2 11" fill="none" />
+            <circle cx="195" cy="540" r="9" fill="#2C3E50" />
+            <circle cx="195" cy="540" r="15" fill="none" stroke="#2C3E50" stroke-width="2" opacity="0.35" />
+            <g id="destPin" transform="translate(150,255)">
+              <path d="M0,-30 C15,-30 25,-19 25,-6 C25,12 0,30 0,30 C0,30 -25,12 -25,-6 C-25,-19 -15,-30 0,-30 Z"
+                fill="#78B145" />
+              <circle cx="0" cy="-6" r="9" fill="#fff" />
+            </g>
+          </svg>
+        </div>
+
+        <button
+          class="absolute z-20 left-5 bottom-[218px] w-11 h-11 rounded-2xl bg-white/80 border border-white/70 backdrop-blur-xl backdrop-saturate-150 flex items-center justify-center shadow-soft"
+          aria-label="تحديد موقعي" id="locateBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+            stroke-linecap="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        </button>
+
+        <!-- bottom sheet -->
+        <div
+          class="sheet absolute left-0 right-0 bottom-0 z-20 bg-white/90 backdrop-blur-2xl backdrop-saturate-150 border-t border-white/60 rounded-t-[28px] shadow-[0_-10px_30px_rgba(44,62,80,0.16)] max-h-[calc(100%-40px)] flex flex-col"
+          id="sheet">
+          <div class="flex justify-center pt-3 pb-1 cursor-grab shrink-0" id="handleZone">
+            <div class="w-10 h-1.5 rounded-full bg-[#C9D2C0]"></div>
+          </div>
+          <div
+            class="status-strip mx-5 mb-3.5 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shrink-0 transition-colors duration-300 bg-primary-light/85"
+            id="statusStrip">
+            <span
+              class="dot w-2 h-2 rounded-full bg-primary shrink-0 transition-all duration-300 shadow-[0_0_0_4px_rgba(120,177,69,0.25)]"
+              id="statusDot"></span>
+            <span class="text-[13.5px] font-bold text-primary-dark" id="statusText">تم قبول الطلب وجاري التحرك نحو
+              التاجر</span>
+          </div>
+
+          <script>
+            function updateOrderStatus(statusType) {
+              const strip = document.getElementById('statusStrip');
+              const text = document.getElementById('statusText');
+              const dot = document.getElementById('statusDot');
+
+              // إزالة التنسيقات القديمة لإعادة ضبط الألوان
+              strip.className = "status-strip mx-5 mb-3.5 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shrink-0 transition-colors duration-300";
+              dot.className = "dot w-2 h-2 rounded-full shrink-0 transition-all duration-300";
+
+              if (statusType === 'moving') {
+                // الحالة الأولى: تحذير بالتأخير (ألوان تميل للتحذير مثل الأصفر/البرتقالي)
+                strip.classList.add('bg-amber-50', 'border', 'border-amber-200');
+                dot.classList.add('bg-amber-500', 'shadow-[0_0_0_4px_rgba(245,158,11,0.25)]');
+                text.className = "text-[13.5px] font-bold text-amber-900";
+                text.innerText = "اتحرك دلوقتي علشان تحافظ علي تقيمك";
+
+              } else if (statusType === 'arrived') {
+                // الحالة الثانية: عند الوصول (ألوان نجاح هادئة مثل الأخضر أو الأزرق)
+                strip.classList.add('bg-emerald-50', 'border', 'border-emerald-200');
+                dot.classList.add('bg-emerald-500', 'shadow-[0_0_0_4px_rgba(16,185,129,0.25)]');
+                text.className = "text-[13.5px] font-bold text-emerald-900";
+                text.innerText = "حمدلله ع السلامه انتظر استلام الطلب ولو اتأخر كلم الدعم";
+
+              } else {
+                // الحالة الافتراضية (قبول الطلب)
+                strip.classList.add('bg-primary-light/85');
+                dot.classList.add('bg-primary', 'shadow-[0_0_0_4px_rgba(120,177,69,0.25)]');
+                text.className = "text-[13.5px] font-bold text-primary-dark";
+                text.innerText = "تم قبول الطلب وجاري التحرك نحو التاجر";
+              }
+            }
+
+            // مثال للاستخدام:
+            // updateOrderStatus('moving');  --> لتفعيل حالة التحذير بالتحرك
+            // updateOrderStatus('arrived'); --> لتفعيل حالة الوصول
+            // updateOrderStatus('default'); --> للعودة للحالة العادية
+          </script>
+          <div class="px-5 pb-6 overflow-y-auto">
+            <div class="flex items-center justify-between mb-3.5">
+              <h2 class="m-0 text-[17px] font-extrabold" id="sheetTitle">بيانات الاستلام</h2>
+              <span class="text-[12.5px] font-bold text-ink-soft">طلب #48213</span>
+            </div>
+
+            <div class="flex gap-3 items-start py-3 border-b border-[#E6E9E1]/80">
+              <div class="w-[38px] h-[38px] rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs text-ink-soft font-semibold mb-0.5" id="locLabel">موقع الاستلام</div>
+                <div class="text-[14.5px] font-bold leading-snug" id="locValue">مطعم البيت الشامي — شارع النصر، مدينة
+                  نصر</div>
+              </div>
+            </div>
+
+            <div class="hidden gap-3 items-start py-3 border-b border-[#E6E9E1]/80" id="personRow">
+              <div class="w-[38px] h-[38px] rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs text-ink-soft font-semibold mb-0.5">بيانات العميل</div>
+                <div class="text-[14.5px] font-bold">أحمد المصري</div>
+                <div class="text-[13px] font-semibold text-ink-soft">01012345678</div>
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <button class="w-9 h-9 rounded-xl bg-primary-light flex items-center justify-center" aria-label="اتصال">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                      d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L8 9.7a16 16 0 0 0 6.3 6.3l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2.1z" />
+                  </svg>
+                </button>
+                <button class="w-9 h-9 rounded-xl bg-[#DFF3E3] flex items-center justify-center" id="personChatBtn"
+                  aria-label="محادثة العميل">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E8B4F" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                      d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.5 8.5 0 0 1-3.8-.9L3 20l1-4.5a8.4 8.4 0 0 1-1-4A8.4 8.4 0 0 1 11.9 3a8.4 8.4 0 0 1 9.1 8.5z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="py-3">
+              <!-- رأس العنصر: الأيقونة والعنوان بجانب بعضهما في الأعلى -->
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-[38px] h-[38px] rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="6" width="18" height="15" rx="2" />
+                    <path d="M8 3v6M16 3v6M3 11h18" />
+                  </svg>
+                </div>
+                <div class="text-xs text-ink-soft font-semibold">تفاصيل الطلب</div>
+              </div>
+
+              <!-- محتوى الجدول: يبدأ من تحت الأيقونة بالعرض الكامل -->
+              <div class="flex flex-col gap-1">
+                <!-- رأس الأعمدة -->
+                <div class="grid grid-cols-12 text-xs text-gray-400 font-medium px-1 mb-1">
+                  <div class="col-span-2">العدد</div>
+                  <div class="col-span-7">اسم المنتج / الوجبة</div>
+                  <div class="col-span-3 text-left">السعر</div>
+                </div>
+
+                <!-- صف المنتج الأول -->
+                <div class="grid grid-cols-12 items-center text-[14.5px] font-bold bg-white/50 p-1.5 rounded-lg">
+                  <div class="col-span-2 text-ink-soft">2x</div>
+                  <div class="col-span-7 truncate">اسم العنصر هنا</div>
+                  <div class="col-span-3 text-left text-primary">150 ج.م</div>
+                </div>
+
+                <!-- صف المنتج الثاني -->
+                <div class="grid grid-cols-12 items-center text-[14.5px] font-bold bg-white/50 p-1.5 rounded-lg">
+                  <div class="col-span-2 text-ink-soft">1x</div>
+                  <div class="col-span-7 truncate">اسم العنصر الاخر</div>
+                  <div class="col-span-3 text-left text-primary">75 ج.م</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between bg-ink rounded-2xl px-[18px] py-3.5 my-3.5">
+              <div>
+                <div class="text-[12.5px] font-semibold text-[#C9D2DA] mb-0.5" id="priceLabel">سعر الدفع للتاجر</div>
+                <div class="text-[22px] font-extrabold text-white" id="priceValue">125 ج.م</div>
+              </div>
+              <!-- أضفنا cursor-pointer لجعل المؤشر يظهر كيد عند الوقوف عليها -->
+              <div
+                class="bg-white/15 text-white text-[11.5px] font-bold px-2.5 py-1.5 rounded-lg cursor-pointer select-none transition-all active:scale-95"
+                id="priceBadge" onclick="togglePaymentMethod()">
+                كاش
+              </div>
+            </div>
+
+            <script>
+              function togglePaymentMethod() {
+                const badge = document.getElementById('priceBadge');
+                // القوائم التي سيتنقل بينها بالترتيب
+                const methods = ['كاش', 'نقدي', 'فيزا', 'محفظة'];
+
+                // البحث عن النص الحالي ومعرفة رقمه في القائمة
+                let currentIndex = methods.indexOf(badge.innerText.trim());
+
+                // الانتقال للعنصر التالي، وإذا وصل للنهاية يعود للبداية (0)
+                let nextIndex = (currentIndex + 1) % methods.length;
+
+                // تحديث النص داخل العنصر
+                badge.innerText = methods[nextIndex];
+              }
+            </script>
+
+            <button
+              class="w-full border-none rounded-2xl py-4 text-[15.5px] font-extrabold text-white bg-primary flex items-center justify-center gap-2 cursor-pointer shadow-[0_10px_22px_rgba(120,177,69,0.35)] transition-transform active:scale-[0.98]"
+              id="mainAction">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              <span id="mainActionText">تصوير واستلام الطلب</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- camera modal -->
+        <div
+          class="camera-modal absolute inset-0 bg-[#10151A] z-30 flex flex-col items-center justify-between sm:rounded-3xl"
+          id="cameraModal">
+          <div class="w-full flex justify-between items-center px-[22px] pt-6">
+            <span class="text-white text-sm font-bold">صوّر الطلب عند الاستلام</span>
+            <button
+              class="w-[38px] h-[38px] rounded-xl bg-white/10 border-none flex items-center justify-center cursor-pointer"
+              id="camClose">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"
+                stroke-linecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+          <div
+            class="flex-1 w-full my-4 relative overflow-hidden bg-gradient-to-br from-[#2b3a2f] via-[#1a2420] to-[#222b25] flex items-center justify-center">
+            <div
+              class="w-[78%] aspect-[3/4] border-2 border-dashed border-white/50 rounded-[20px] flex items-center justify-center">
+              <span class="text-white/60 text-[12.5px] font-semibold text-center px-5">ضع الطلب داخل الإطار ثم التقط
+                الصورة</span>
+            </div>
+            <div class="flash absolute inset-0 bg-white pointer-events-none" id="flash"></div>
+            <div class="cam-confirm absolute inset-0 bg-[#10151A]/92 flex flex-col items-center justify-center gap-3.5"
+              id="camConfirm">
+              <div class="cam-check w-[74px] h-[74px] rounded-full bg-primary flex items-center justify-center">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <p class="text-white text-[14.5px] font-bold m-0">تم تأكيد الاستلام</p>
+            </div>
+          </div>
+          <div class="w-full flex justify-center pb-10">
+            <button
+              class="w-[70px] h-[70px] rounded-full bg-white border-[5px] border-white/35 cursor-pointer active:scale-[0.94]"
+              id="shutterBtn" aria-label="التقاط الصورة"></button>
+          </div>
+        </div>
       </div>
 
-      <button class="absolute z-20 left-5 bottom-[218px] w-11 h-11 rounded-2xl bg-white/80 border border-white/70 backdrop-blur-xl backdrop-saturate-150 flex items-center justify-center shadow-soft" aria-label="تحديد موقعي" id="locateBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-      </button>
-
-      <!-- bottom sheet -->
-      <div class="sheet absolute left-0 right-0 bottom-0 z-20 bg-white/90 backdrop-blur-2xl backdrop-saturate-150 border-t border-white/60 rounded-t-[28px] shadow-[0_-10px_30px_rgba(44,62,80,0.16)] max-h-[calc(100%-40px)] flex flex-col" id="sheet">
-        <div class="flex justify-center pt-3 pb-1 cursor-grab shrink-0" id="handleZone">
-          <div class="w-10 h-1.5 rounded-full bg-[#C9D2C0]"></div>
+      <!-- ===================== ORDERS ===================== -->
+      <div class="screen" id="screen-orders">
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]">
         </div>
-        <div class="status-strip mx-5 mb-3.5 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shrink-0 bg-primary-light/85" id="statusStrip">
-          <span class="dot w-2 h-2 rounded-full bg-primary shrink-0 shadow-[0_0_0_4px_rgba(120,177,69,0.25)]"></span>
-          <span class="text-[13.5px] font-bold text-primary-dark" id="statusText">في الطريق لاستلام الطلب</span>
+        <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
+          <h2 class="m-0 mb-1 text-[22px] font-extrabold">طلباتي</h2>
+          <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">سجل الطلبات المكتملة والحالية</p>
+          <div class="flex gap-2 mb-4" id="chipRow">
+            <div
+              class="chip active px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-primary text-white border border-primary"
+              data-filter="all">الكل</div>
+            <div
+              class="chip px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-white/50 border border-white/70 text-ink-soft"
+              data-filter="progress">جارية</div>
+            <div
+              class="chip px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-white/50 border border-white/70 text-ink-soft"
+              data-filter="done">مكتملة</div>
+            <div
+              class="chip px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-white/50 border border-white/70 text-ink-soft"
+              data-filter="cancel">ملغاة</div>
+          </div>
+          <div id="ordersList"></div>
         </div>
-        <div class="px-5 pb-6 overflow-y-auto">
-          <div class="flex items-center justify-between mb-3.5">
-            <h2 class="m-0 text-[17px] font-extrabold" id="sheetTitle">بيانات الاستلام</h2>
-            <span class="text-[12.5px] font-bold text-ink-soft">طلب #48213</span>
-          </div>
+      </div>
 
-          <div class="flex gap-3 items-start py-3 border-b border-[#E6E9E1]/80">
-            <div class="w-[38px] h-[38px] rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs text-ink-soft font-semibold mb-0.5" id="locLabel">موقع الاستلام</div>
-              <div class="text-[14.5px] font-bold leading-snug" id="locValue">مطعم البيت الشامي — شارع النصر، مدينة نصر</div>
-            </div>
-          </div>
-
-          <div class="hidden gap-3 items-start py-3 border-b border-[#E6E9E1]/80" id="personRow">
-            <div class="w-[38px] h-[38px] rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs text-ink-soft font-semibold mb-0.5">بيانات العميل</div>
-              <div class="text-[14.5px] font-bold">أحمد المصري</div>
-              <div class="text-[13px] font-semibold text-ink-soft">01012345678</div>
-            </div>
-            <div class="flex gap-2 shrink-0">
-              <button class="w-9 h-9 rounded-xl bg-primary-light flex items-center justify-center" aria-label="اتصال">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L8 9.7a16 16 0 0 0 6.3 6.3l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2.1z"/></svg>
-              </button>
-              <button class="w-9 h-9 rounded-xl bg-[#DFF3E3] flex items-center justify-center" aria-label="واتساب">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E8B4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.5 8.5 0 0 1-3.8-.9L3 20l1-4.5a8.4 8.4 0 0 1-1-4A8.4 8.4 0 0 1 11.9 3a8.4 8.4 0 0 1 9.1 8.5z"/></svg>
-              </button>
+      <!-- ===================== EARNINGS ===================== -->
+      <div class="screen" id="screen-earnings">
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]">
+        </div>
+        <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
+          <h2 class="m-0 mb-1 text-[22px] font-extrabold">الأرباح</h2>
+          <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">ملخص أرباحك وأدائك</p>
+          <div
+            class="bg-gradient-to-br from-primary/90 to-primary-dark/90 backdrop-blur-xl rounded-3xl p-[22px] text-white mb-4 shadow-[0_14px_30px_rgba(92,143,52,0.35)]">
+            <div class="text-[13px] opacity-90 font-semibold mb-1.5">إجمالي أرباح اليوم</div>
+            <div class="text-[34px] font-black mb-3.5">742 ج.م</div>
+            <div class="flex gap-2.5">
+              <div class="flex-1 bg-white/18 rounded-2xl px-3 py-2.5">
+                <div class="text-[16px] font-extrabold">14</div>
+                <div class="text-[11px] opacity-90 font-semibold mt-0.5">طلب</div>
+              </div>
+              <div class="flex-1 bg-white/18 rounded-2xl px-3 py-2.5">
+                <div class="text-[16px] font-extrabold">38 كم</div>
+                <div class="text-[11px] opacity-90 font-semibold mt-0.5">المسافة</div>
+              </div>
+              <div class="flex-1 bg-white/18 rounded-2xl px-3 py-2.5">
+                <div class="text-[16px] font-extrabold">6.2 س</div>
+                <div class="text-[11px] opacity-90 font-semibold mt-0.5">وقت العمل</div>
+              </div>
             </div>
           </div>
+          <div
+            class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-[18px] mb-3.5">
+            <h4 class="m-0 mb-3.5 text-[14.5px] font-extrabold">أرباح الأسبوع</h4>
+            <div class="flex items-end gap-2.5 h-[110px]" id="weekBars"></div>
+          </div>
+          <div
+            class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-[18px] mb-3.5">
+            <h4 class="m-0 mb-3.5 text-[14.5px] font-extrabold">تفاصيل آخر 5 أيام</h4>
+            <div id="dayList"></div>
+          </div>
+        </div>
+      </div>
 
-          <div class="flex gap-3 items-start py-3">
-            <div class="w-[38px] h-[38px] rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="2"/><path d="M8 3v6M16 3v6M3 11h18"/></svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs text-ink-soft font-semibold mb-0.5">تفاصيل الطلب</div>
-              <div class="text-[14.5px] font-bold">وجبتان + مشروبان — 3 عناصر</div>
+      <!-- ===================== NOTIFICATIONS ===================== -->
+      <div class="screen" id="screen-notifications">
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]">
+        </div>
+        <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
+          <h2 class="m-0 mb-1 text-[22px] font-extrabold">الإشعارات</h2>
+          <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">آخر التحديثات المتعلقة بحسابك وطلباتك</p>
+          <div id="notifList"></div>
+        </div>
+      </div>
+
+      <!-- ===================== SETTINGS ===================== -->
+      <div class="screen" id="screen-settings">
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]">
+        </div>
+        <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
+          <h2 class="m-0 mb-1 text-[22px] font-extrabold">الإعدادات</h2>
+          <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">تحكم في تفضيلات الحساب والتطبيق</p>
+
+          <div class="mb-[18px]">
+            <h6 class="m-0 mb-2 text-xs font-extrabold text-ink-soft px-1">الحساب</h6>
+            <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px]">
+              <div
+                class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer active:bg-white/50"
+                data-open="profile" role="button">
+                <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg
+                    width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+                  </svg></div>
+                <div class="flex-1">
+                  <h6 class="m-0 mb-0.5 text-sm font-bold">البيانات الشخصية</h6>
+                  <p class="m-0 text-[11.5px] text-ink-soft font-semibold" id="profileSummary">الاسم، الصورة، رقم الهاتف
+                  </p>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2"
+                  stroke-linecap="round">
+                  <path d="M9 18l-6-6 6-6" />
+                </svg>
+              </div>
+              <div class="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-white/50" data-open="payment"
+                role="button">
+                <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg
+                    width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="6" width="18" height="14" rx="2" />
+                    <path d="M3 10h18" />
+                  </svg></div>
+                <div class="flex-1">
+                  <h6 class="m-0 mb-0.5 text-sm font-bold">وسيلة الدفع والتحصيل</h6>
+                  <p class="m-0 text-[11.5px] text-ink-soft font-semibold" id="paymentSummary">حساب استلام الأرباح</p>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2"
+                  stroke-linecap="round">
+                  <path d="M9 18l-6-6 6-6" />
+                </svg>
+              </div>
             </div>
           </div>
 
-          <div class="flex items-center justify-between bg-ink rounded-2xl px-[18px] py-3.5 my-3.5">
-            <div>
-              <div class="text-[12.5px] font-semibold text-[#C9D2DA] mb-0.5" id="priceLabel">سعر الدفع للمطعم</div>
-              <div class="text-[22px] font-extrabold text-white" id="priceValue">185 ج.م</div>
+          <div class="mb-[18px]">
+            <h6 class="m-0 mb-2 text-xs font-extrabold text-ink-soft px-1">التنبيهات والتطبيق</h6>
+            <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px]">
+              <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70">
+                <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg
+                    width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                  </svg></div>
+                <div class="flex-1">
+                  <h6 class="m-0 mb-0.5 text-sm font-bold">إشعارات الطلبات</h6>
+                  <p class="m-0 text-[11.5px] text-ink-soft font-semibold">تنبيه صوتي عند وصول طلب جديد</p>
+                </div>
+                <div class="switch on" data-toggle>
+                  <div class="knob"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70">
+                <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg
+                    width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" />
+                  </svg></div>
+                <div class="flex-1">
+                  <h6 class="m-0 mb-0.5 text-sm font-bold">الوضع الليلي</h6>
+                  <p class="m-0 text-[11.5px] text-ink-soft font-semibold">تفعيل المظهر الداكن للتطبيق</p>
+                </div>
+                <div class="switch" data-toggle>
+                  <div class="knob"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 px-4 py-3.5">
+                <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg
+                    width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg></div>
+                <div class="flex-1">
+                  <h6 class="m-0 mb-0.5 text-sm font-bold">مشاركة الموقع</h6>
+                  <p class="m-0 text-[11.5px] text-ink-soft font-semibold">أثناء استخدام التطبيق فقط</p>
+                </div>
+                <div class="switch on" data-toggle>
+                  <div class="knob"></div>
+                </div>
+              </div>
             </div>
-            <div class="bg-white/15 text-white text-[11.5px] font-bold px-2.5 py-1.5 rounded-lg" id="priceBadge">كاش</div>
           </div>
 
-          <button class="w-full border-none rounded-2xl py-4 text-[15.5px] font-extrabold text-white bg-primary flex items-center justify-center gap-2 cursor-pointer shadow-[0_10px_22px_rgba(120,177,69,0.35)] transition-transform active:scale-[0.98]" id="mainAction">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <span id="mainActionText">تصوير واستلام الطلب</span>
+          <div class="mb-[18px]">
+            <h6 class="m-0 mb-2 text-xs font-extrabold text-ink-soft px-1">عام</h6>
+            <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px]">
+              <div
+                class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer active:bg-white/50"
+                data-open="language" role="button">
+                <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg
+                    width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z" />
+                  </svg></div>
+                <div class="flex-1">
+                  <h6 class="m-0 mb-0.5 text-sm font-bold">اللغة</h6>
+                  <p class="m-0 text-[11.5px] text-ink-soft font-semibold" id="languageSummary">العربية</p>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2"
+                  stroke-linecap="round">
+                  <path d="M9 18l-6-6 6-6" />
+                </svg>
+              </div>
+              <div class="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-white/50" data-open="about"
+                role="button">
+                <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg
+                    width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4M12 8h.01" />
+                  </svg></div>
+                <div class="flex-1">
+                  <h6 class="m-0 mb-0.5 text-sm font-bold">عن التطبيق</h6>
+                  <p class="m-0 text-[11.5px] text-ink-soft font-semibold">الإصدار 2.4.1</p>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2"
+                  stroke-linecap="round">
+                  <path d="M9 18l-6-6 6-6" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CHAT (SUPPORT) ===================== -->
+      <div class="screen" id="screen-chat">
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]">
+        </div>
+        <div
+          class="absolute top-0 left-0 right-0 z-10 px-5 py-4 flex items-center gap-2.5 bg-white/60 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
+          <button
+            class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0"
+            id="supportChatBack" aria-label="رجوع">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
+          <div class="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 13a8 8 0 0 1 16 0" />
+              <path d="M20 13v4a2 2 0 0 1-2 2h-1" />
+              <rect x="3" y="13" width="4" height="6" rx="1.5" />
+              <rect x="17" y="13" width="4" height="6" rx="1.5" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-[14.5px] font-extrabold">الدعم الفني</div>
+            <div class="text-[11.5px] font-bold text-primary-dark">متصل الآن</div>
+          </div>
+        </div>
+        <div
+          class="absolute top-[70px] bottom-[78px] left-0 right-0 overflow-y-auto px-4 pt-4 pb-1.5 flex flex-col gap-2.5"
+          id="chatMessages">
+          <div class="flex justify-start">
+            <div
+              class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80">
+              أهلاً محمود 👋، إزاي أقدر أساعدك النهارده؟<span
+                class="block text-[10px] mt-1 opacity-75 font-semibold">10:02 ص</span></div>
+          </div>
+          <div class="flex justify-end">
+            <div
+              class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white">
+              عندي مشكلة في تحصيل مبلغ الطلب رقم 48213<span
+                class="block text-[10px] mt-1 opacity-75 font-semibold">10:03 ص</span></div>
+          </div>
+          <div class="flex justify-start">
+            <div
+              class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80">
+              تمام، شكراً لتوضيح رقم الطلب. جاري المراجعة الآن وهرد عليك خلال دقايق.<span
+                class="block text-[10px] mt-1 opacity-75 font-semibold">10:03 ص</span></div>
+          </div>
+          <div class="flex justify-end">
+            <div
+              class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white">
+              تمام، في انتظارك 🙏<span class="block text-[10px] mt-1 opacity-75 font-semibold">10:04 ص</span></div>
+          </div>
+        </div>
+        <div
+          class="absolute left-0 right-0 bottom-0 z-10 px-3.5 pt-3 pb-3.5 flex items-center gap-2 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-t border-white/60">
+          <input type="text" id="chatInput" placeholder="اكتب رسالتك..."
+            class="flex-1 border border-[#E6E9E1] bg-white/70 rounded-full px-4 py-3 text-[13.5px] font-semibold text-ink outline-none focus:border-primary">
+          <button
+            class="w-[42px] h-[42px] rounded-full bg-primary border-none shrink-0 flex items-center justify-center cursor-pointer shadow-[0_6px_14px_rgba(120,177,69,0.4)] active:scale-[0.92]"
+            id="sendBtn" aria-label="إرسال">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="none">
+              <path d="M3 11l17-8-8 17-2-7-7-2z" />
+            </svg>
           </button>
         </div>
       </div>
 
-      <!-- camera modal -->
-      <div class="camera-modal absolute inset-0 bg-[#10151A] z-30 flex flex-col items-center justify-between sm:rounded-3xl" id="cameraModal">
-        <div class="w-full flex justify-between items-center px-[22px] pt-6">
-          <span class="text-white text-sm font-bold">صوّر الطلب عند الاستلام</span>
-          <button class="w-[38px] h-[38px] rounded-xl bg-white/10 border-none flex items-center justify-center cursor-pointer" id="camClose">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <!-- ===================== CHAT (CUSTOMER) ===================== -->
+      <div class="screen" id="screen-chat-customer">
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]">
+        </div>
+        <div
+          class="absolute top-0 left-0 right-0 z-10 px-5 py-4 flex items-center gap-2.5 bg-white/60 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
+          <button
+            class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0"
+            id="custChatBack" aria-label="رجوع">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
+          <div class="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-[14.5px] font-extrabold" id="custChatName">أحمد المصري</div>
+            <div class="text-[11.5px] font-bold text-ink-soft">طلب #48213</div>
+          </div>
+        </div>
+        <div
+          class="absolute top-[70px] bottom-[78px] left-0 right-0 overflow-y-auto px-4 pt-4 pb-1.5 flex flex-col gap-2.5"
+          id="custChatMessages">
+          <div class="flex justify-start">
+            <div
+              class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80">
+              تمام يا فندم، أنا في الطريق وهوصل خلال دقايق 🙏<span
+                class="block text-[10px] mt-1 opacity-75 font-semibold">10:05 ص</span></div>
+          </div>
+          <div class="flex justify-end">
+            <div
+              class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white">
+              تمام، في انتظارك عند الباب الرئيسي<span class="block text-[10px] mt-1 opacity-75 font-semibold">10:06
+                ص</span></div>
+          </div>
+        </div>
+        <div
+          class="absolute left-0 right-0 bottom-0 z-10 px-3.5 pt-3 pb-3.5 flex items-center gap-2 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-t border-white/60">
+          <input type="text" id="custChatInput" placeholder="اكتب رسالتك..."
+            class="flex-1 border border-[#E6E9E1] bg-white/70 rounded-full px-4 py-3 text-[13.5px] font-semibold text-ink outline-none focus:border-primary">
+          <button
+            class="w-[42px] h-[42px] rounded-full bg-primary border-none shrink-0 flex items-center justify-center cursor-pointer shadow-[0_6px_14px_rgba(120,177,69,0.4)] active:scale-[0.92]"
+            id="custSendBtn" aria-label="إرسال">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="none">
+              <path d="M3 11l17-8-8 17-2-7-7-2z" />
+            </svg>
           </button>
         </div>
-        <div class="flex-1 w-full my-4 relative overflow-hidden bg-gradient-to-br from-[#2b3a2f] via-[#1a2420] to-[#222b25] flex items-center justify-center">
-          <div class="w-[78%] aspect-[3/4] border-2 border-dashed border-white/50 rounded-[20px] flex items-center justify-center">
-            <span class="text-white/60 text-[12.5px] font-semibold text-center px-5">ضع الطلب داخل الإطار ثم التقط الصورة</span>
-          </div>
-          <div class="flash absolute inset-0 bg-white pointer-events-none" id="flash"></div>
-          <div class="cam-confirm absolute inset-0 bg-[#10151A]/92 flex flex-col items-center justify-center gap-3.5" id="camConfirm">
-            <div class="cam-check w-[74px] h-[74px] rounded-full bg-primary flex items-center justify-center">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
-            <p class="text-white text-[14.5px] font-bold m-0">تم تأكيد الاستلام</p>
-          </div>
-        </div>
-        <div class="w-full flex justify-center pb-10">
-          <button class="w-[70px] h-[70px] rounded-full bg-white border-[5px] border-white/35 cursor-pointer active:scale-[0.94]" id="shutterBtn" aria-label="التقاط الصورة"></button>
-        </div>
       </div>
+
     </div>
 
-    <!-- ===================== ORDERS ===================== -->
-    <div class="screen" id="screen-orders">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]"></div>
-      <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
-        <h2 class="m-0 mb-1 text-[22px] font-extrabold">طلباتي</h2>
-        <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">سجل الطلبات المكتملة والحالية</p>
-        <div class="flex gap-2 mb-4" id="chipRow">
-          <div class="chip active px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-primary text-white border border-primary" data-filter="all">الكل</div>
-          <div class="chip px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-white/50 border border-white/70 text-ink-soft" data-filter="progress">جارية</div>
-          <div class="chip px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-white/50 border border-white/70 text-ink-soft" data-filter="done">مكتملة</div>
-          <div class="chip px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer bg-white/50 border border-white/70 text-ink-soft" data-filter="cancel">ملغاة</div>
-        </div>
-        <div id="ordersList"></div>
-      </div>
-    </div>
+    <!-- global FABs -->
+    <button
+      class="absolute z-20 top-4 left-5 w-12 h-12 rounded-2xl bg-white/80 border border-white/70 backdrop-blur-xl backdrop-saturate-150 flex items-center justify-center shadow-soft cursor-pointer active:scale-[0.92]"
+      id="btnMenu" aria-label="القائمة">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.2"
+        stroke-linecap="round">
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </svg>
+    </button>
+    <button
+      class="absolute z-20 top-4 right-5 w-12 h-12 rounded-2xl bg-primary/75 border border-white/45 backdrop-blur-xl backdrop-saturate-150 flex items-center justify-center shadow-soft cursor-pointer active:scale-[0.92]"
+      id="btnSupport" aria-label="التواصل مع الدعم">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 13a8 8 0 0 1 16 0" />
+        <path d="M20 13v4a2 2 0 0 1-2 2h-1" />
+        <rect x="3" y="13" width="4" height="6" rx="1.5" />
+        <rect x="17" y="13" width="4" height="6" rx="1.5" />
+      </svg>
+    </button>
 
-    <!-- ===================== EARNINGS ===================== -->
-    <div class="screen" id="screen-earnings">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]"></div>
-      <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
-        <h2 class="m-0 mb-1 text-[22px] font-extrabold">الأرباح</h2>
-        <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">ملخص أرباحك وأدائك</p>
-        <div class="bg-gradient-to-br from-primary/90 to-primary-dark/90 backdrop-blur-xl rounded-3xl p-[22px] text-white mb-4 shadow-[0_14px_30px_rgba(92,143,52,0.35)]">
-          <div class="text-[13px] opacity-90 font-semibold mb-1.5">إجمالي أرباح اليوم</div>
-          <div class="text-[34px] font-black mb-3.5">742 ج.م</div>
-          <div class="flex gap-2.5">
-            <div class="flex-1 bg-white/18 rounded-2xl px-3 py-2.5"><div class="text-[16px] font-extrabold">14</div><div class="text-[11px] opacity-90 font-semibold mt-0.5">طلب</div></div>
-            <div class="flex-1 bg-white/18 rounded-2xl px-3 py-2.5"><div class="text-[16px] font-extrabold">38 كم</div><div class="text-[11px] opacity-90 font-semibold mt-0.5">المسافة</div></div>
-            <div class="flex-1 bg-white/18 rounded-2xl px-3 py-2.5"><div class="text-[16px] font-extrabold">6.2 س</div><div class="text-[11px] opacity-90 font-semibold mt-0.5">وقت العمل</div></div>
+    <div class="backdrop absolute inset-0 bg-ink/40 z-40" id="backdrop"></div>
+
+    <!-- side menu -->
+    <nav
+      class="side-menu absolute top-0 bottom-0 left-0 z-50 w-[280px] bg-white backdrop-blur-2xl backdrop-saturate-150 border-r border-gray-100 flex flex-col shadow-[16px_0_40px_rgba(0,0,0,0.18)]"
+      id="sideMenu">
+      <div class="relative overflow-hidden bg-white text-[#007011] px-6 pt-14 pb-[22px] rounded-br-[28px]">
+        <!-- الخلفية المتدرجة والأشكال المأخوذة من الشاشة الأولى -->
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] pointer-events-none">
+        </div>
+
+        <!-- المحتوى -->
+        <div class="relative z-10">
+          <div
+            class="w-[54px] h-[54px] rounded-2xl bg-[#007011]/10 backdrop-blur-sm flex items-center justify-center mb-3">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007011" stroke-width="2">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+            </svg>
           </div>
-        </div>
-        <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-[18px] mb-3.5">
-          <h4 class="m-0 mb-3.5 text-[14.5px] font-extrabold">أرباح الأسبوع</h4>
-          <div class="flex items-end gap-2.5 h-[110px]" id="weekBars"></div>
-        </div>
-        <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-[18px] mb-3.5">
-          <h4 class="m-0 mb-3.5 text-[14.5px] font-extrabold">تفاصيل آخر 5 أيام</h4>
-          <div id="dayList"></div>
+          <h3 class="m-0 mb-1 text-[18px] font-extrabold text-[#007011]">محمود عبد الله</h3>
+          <p class="m-0 text-[13px] opacity-90 font-semibold text-[#007011]">مندوب التوصيل · تقييم 4.9</p>
         </div>
       </div>
-    </div>
 
-    <!-- ===================== NOTIFICATIONS ===================== -->
-    <div class="screen" id="screen-notifications">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]"></div>
-      <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
-        <h2 class="m-0 mb-1 text-[22px] font-extrabold">الإشعارات</h2>
-        <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">آخر التحديثات المتعلقة بحسابك وطلباتك</p>
-        <div id="notifList"></div>
-      </div>
-    </div>
-
-    <!-- ===================== SETTINGS ===================== -->
-    <div class="screen" id="screen-settings">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]"></div>
-      <div class="absolute inset-0 overflow-y-auto px-5 pt-[26px] pb-8">
-        <h2 class="m-0 mb-1 text-[22px] font-extrabold">الإعدادات</h2>
-        <p class="m-0 mb-4 text-[13.5px] text-ink-soft font-semibold">تحكم في تفضيلات الحساب والتطبيق</p>
-
-        <div class="mb-[18px]">
-          <h6 class="m-0 mb-2 text-xs font-extrabold text-ink-soft px-1">الحساب</h6>
-          <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px]">
-            <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer active:bg-white/50" data-open="profile" role="button">
-              <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></div>
-              <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">البيانات الشخصية</h6><p class="m-0 text-[11.5px] text-ink-soft font-semibold" id="profileSummary">الاسم، الصورة، رقم الهاتف</p></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6"/></svg>
-            </div>
-            <div class="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-white/50" data-open="payment" role="button">
-              <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></div>
-              <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">وسيلة الدفع والتحصيل</h6><p class="m-0 text-[11.5px] text-ink-soft font-semibold" id="paymentSummary">حساب استلام الأرباح</p></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6"/></svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-[18px]">
-          <h6 class="m-0 mb-2 text-xs font-extrabold text-ink-soft px-1">التنبيهات والتطبيق</h6>
-          <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px]">
-            <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70">
-              <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div>
-              <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">إشعارات الطلبات</h6><p class="m-0 text-[11.5px] text-ink-soft font-semibold">تنبيه صوتي عند وصول طلب جديد</p></div>
-              <div class="switch on" data-toggle><div class="knob"></div></div>
-            </div>
-            <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70">
-              <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></div>
-              <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">الوضع الليلي</h6><p class="m-0 text-[11.5px] text-ink-soft font-semibold">تفعيل المظهر الداكن للتطبيق</p></div>
-              <div class="switch" data-toggle><div class="knob"></div></div>
-            </div>
-            <div class="flex items-center gap-3 px-4 py-3.5">
-              <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-              <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">مشاركة الموقع</h6><p class="m-0 text-[11.5px] text-ink-soft font-semibold">أثناء استخدام التطبيق فقط</p></div>
-              <div class="switch on" data-toggle><div class="knob"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-[18px]">
-          <h6 class="m-0 mb-2 text-xs font-extrabold text-ink-soft px-1">عام</h6>
-          <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px]">
-            <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer active:bg-white/50" data-open="language" role="button">
-              <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg></div>
-              <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">اللغة</h6><p class="m-0 text-[11.5px] text-ink-soft font-semibold" id="languageSummary">العربية</p></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6"/></svg>
-            </div>
-            <div class="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-white/50" data-open="about" role="button">
-              <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>
-              <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">عن التطبيق</h6><p class="m-0 text-[11.5px] text-ink-soft font-semibold">الإصدار 2.4.1</p></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6"/></svg>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===================== CHAT ===================== -->
-    <div class="screen" id="screen-chat">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%),radial-gradient(circle_at_90%_95%,rgba(44,62,80,0.10),transparent_40%)] bg-[#F6F8F4]"></div>
-      <div class="absolute top-0 left-0 right-0 z-10 px-5 py-4 flex items-center gap-2.5 bg-white/60 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
-        <div class="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M20 13v4a2 2 0 0 1-2 2h-1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/></svg>
-        </div>
-        <div>
-          <div class="text-[14.5px] font-extrabold">الدعم الفني</div>
-          <div class="text-[11.5px] font-bold text-primary-dark">متصل الآن</div>
-        </div>
-      </div>
-      <div class="absolute top-[70px] bottom-[78px] left-0 right-0 overflow-y-auto px-4 pt-4 pb-1.5 flex flex-col gap-2.5" id="chatMessages">
-        <div class="flex justify-start"><div class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80">أهلاً محمود 👋، إزاي أقدر أساعدك النهارده؟<span class="block text-[10px] mt-1 opacity-75 font-semibold">10:02 ص</span></div></div>
-        <div class="flex justify-end"><div class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white">عندي مشكلة في تحصيل مبلغ الطلب رقم 48213<span class="block text-[10px] mt-1 opacity-75 font-semibold">10:03 ص</span></div></div>
-        <div class="flex justify-start"><div class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80">تمام، شكراً لتوضيح رقم الطلب. جاري المراجعة الآن وهرد عليك خلال دقايق.<span class="block text-[10px] mt-1 opacity-75 font-semibold">10:03 ص</span></div></div>
-        <div class="flex justify-end"><div class="max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white">تمام، في انتظارك 🙏<span class="block text-[10px] mt-1 opacity-75 font-semibold">10:04 ص</span></div></div>
-      </div>
-      <div class="absolute left-0 right-0 bottom-0 z-10 px-3.5 pt-3 pb-3.5 flex items-center gap-2 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-t border-white/60">
-        <input type="text" id="chatInput" placeholder="اكتب رسالتك..." class="flex-1 border border-[#E6E9E1] bg-white/70 rounded-full px-4 py-3 text-[13.5px] font-semibold text-ink outline-none focus:border-primary">
-        <button class="w-[42px] h-[42px] rounded-full bg-primary border-none shrink-0 flex items-center justify-center cursor-pointer shadow-[0_6px_14px_rgba(120,177,69,0.4)] active:scale-[0.92]" id="sendBtn" aria-label="إرسال">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M3 11l17-8-8 17-2-7-7-2z"/></svg>
+      <div class="px-3 py-3.5 flex flex-col gap-0.5 flex-1 overflow-y-auto">
+        <button
+          class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-primary/20 text-primary-dark cursor-pointer text-right w-full"
+          data-screen="home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 11l9-7 9 7" />
+            <path d="M5 10v10h14V10" />
+          </svg>
+          الرئيسية
+        </button>
+        <button
+          class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full"
+          data-screen="orders">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="3" />
+            <path d="M4 10h16M10 4v16" />
+          </svg>
+          طلباتي
+        </button>
+        <button
+          class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full"
+          data-screen="earnings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5" />
+          </svg>
+          الأرباح
+        </button>
+        <button
+          class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full"
+          data-screen="chat">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.5 8.5 0 0 1-3.8-.9L3 20l1-4.5a8.4 8.4 0 0 1-1-4A8.4 8.4 0 0 1 11.9 3a8.4 8.4 0 0 1 9.1 8.5z" />
+          </svg>
+          الدردشة
+        </button>
+        <button
+          class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full"
+          data-screen="notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+          </svg>
+          الإشعارات
+        </button>
+        <button
+          class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full"
+          data-screen="settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+          </svg>
+          الإعدادات
         </button>
       </div>
-    </div>
-
-  </div>
-
-  <!-- global FABs -->
-  <button class="absolute z-20 top-4 left-5 w-12 h-12 rounded-2xl bg-white/80 border border-white/70 backdrop-blur-xl backdrop-saturate-150 flex items-center justify-center shadow-soft cursor-pointer active:scale-[0.92]" id="btnMenu" aria-label="القائمة">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-  </button>
-  <button class="absolute z-20 top-4 right-5 w-12 h-12 rounded-2xl bg-primary/75 border border-white/45 backdrop-blur-xl backdrop-saturate-150 flex items-center justify-center shadow-soft cursor-pointer active:scale-[0.92]" id="btnSupport" aria-label="التواصل مع الدعم">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M20 13v4a2 2 0 0 1-2 2h-1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/></svg>
-  </button>
-
-  <div class="backdrop absolute inset-0 bg-ink/40 z-40" id="backdrop"></div>
-
-  <!-- side menu -->
-  <nav class="side-menu absolute top-0 bottom-0 left-0 z-50 w-[280px] bg-white/70 backdrop-blur-2xl backdrop-saturate-150 border-r border-white/55 flex flex-col shadow-[16px_0_40px_rgba(0,0,0,0.18)]" id="sideMenu">
-    <div class="bg-gradient-to-br from-primary/85 to-primary-dark/85 text-white px-6 pt-14 pb-[22px] rounded-br-[28px]">
-      <div class="w-[54px] h-[54px] rounded-2xl bg-white/25 backdrop-blur-sm flex items-center justify-center mb-3">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <div class="px-5 pt-4 pb-6 border-t border-gray-100">
+        <button
+          class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-[#C0504D] border-none bg-transparent cursor-pointer text-right w-full"
+          id="logoutBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <path d="M16 17l5-5-5-5" />
+            <path d="M21 12H9" />
+          </svg>
+          تسجيل الخروج
+        </button>
       </div>
-      <h3 class="m-0 mb-1 text-[18px] font-extrabold">محمود عبد الله</h3>
-      <p class="m-0 text-[13px] opacity-90 font-semibold">سائق توصيل · تقييم 4.9</p>
-    </div>
-    <div class="px-3 py-3.5 flex flex-col gap-0.5 flex-1 overflow-y-auto">
-      <button class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-primary/20 text-primary-dark cursor-pointer text-right w-full" data-screen="home">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
-        الرئيسية
-      </button>
-      <button class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full" data-screen="orders">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M10 4v16"/></svg>
-        طلباتي
-      </button>
-      <button class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full" data-screen="earnings">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/></svg>
-        الأرباح
-      </button>
-      <button class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full" data-screen="chat">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.5 8.5 0 0 1-3.8-.9L3 20l1-4.5a8.4 8.4 0 0 1-1-4A8.4 8.4 0 0 1 11.9 3a8.4 8.4 0 0 1 9.1 8.5z"/></svg>
-        الدردشة
-      </button>
-      <button class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full" data-screen="notifications">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-        الإشعارات
-      </button>
-      <button class="menu-item flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-ink-soft border-none bg-transparent cursor-pointer text-right w-full" data-screen="settings">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-        الإعدادات
-      </button>
-    </div>
-    <div class="px-5 pt-4 pb-6 border-t border-white/50">
-      <button class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[15px] font-bold text-[#C0504D] border-none bg-transparent cursor-pointer text-right w-full" id="logoutBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-        تسجيل الخروج
-      </button>
-    </div>
-  </nav>
+    </nav>
 
-  <!-- support sheet -->
-  <div class="support-sheet absolute left-4 right-4 z-45 bg-white/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/60 rounded-[22px] p-5 shadow-card" id="supportSheet">
-    <h4 class="m-0 mb-1 text-[16px] font-extrabold">التواصل مع الدعم</h4>
-    <p class="m-0 mb-4 text-[13px] text-ink-soft font-semibold">فريق الدعم متاح على مدار الساعة لمساعدتك</p>
-    <button class="flex items-center gap-3 w-full px-3.5 py-3.5 mb-2 rounded-2xl border-[1.5px] border-white/70 bg-white/50 text-[14.5px] font-bold text-ink cursor-pointer" id="supportCall">
-      <span class="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center shrink-0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L8 9.7a16 16 0 0 0 6.3 6.3l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2.1z"/></svg></span>
-      اتصال مباشر بالدعم
-    </button>
-    <button class="flex items-center gap-3 w-full px-3.5 py-3.5 mb-2 rounded-2xl border-[1.5px] border-white/70 bg-white/50 text-[14.5px] font-bold text-ink cursor-pointer" id="supportChat">
-      <span class="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center shrink-0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.5 8.5 0 0 1-3.8-.9L3 20l1-4.5a8.4 8.4 0 0 1-1-4A8.4 8.4 0 0 1 11.9 3a8.4 8.4 0 0 1 9.1 8.5z"/></svg></span>
-      محادثة نصية مع الدعم
-    </button>
-    <button class="w-full text-center py-3 mt-1 border-none bg-transparent font-bold text-ink-soft text-sm cursor-pointer" id="supportClose">إغلاق</button>
-  </div>
-
-  <div class="toast absolute left-1/2 top-4 z-[60] bg-ink/90 backdrop-blur-md text-white px-[18px] py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap" id="toast">جاري الاتصال بالدعم...</div>
-
-  <!-- ============ SUBSCREEN: profile ============ -->
-  <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-profile">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]"></div>
-    <div class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
-      <button class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0" data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-      <h3 class="m-0 text-[16px] font-extrabold">البيانات الشخصية</h3>
+    <!-- support sheet -->
+    <div
+      class="support-sheet absolute left-4 right-4 z-45 bg-white/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/60 rounded-[22px] p-5 shadow-card"
+      id="supportSheet">
+      <h4 class="m-0 mb-1 text-[16px] font-extrabold">التواصل مع الدعم</h4>
+      <p class="m-0 mb-4 text-[13px] text-ink-soft font-semibold">فريق الدعم متاح على مدار الساعة لمساعدتك</p>
+      <button
+        class="flex items-center gap-3 w-full px-3.5 py-3.5 mb-2 rounded-2xl border-[1.5px] border-white/70 bg-white/50 text-[14.5px] font-bold text-ink cursor-pointer"
+        id="supportCall">
+        <span class="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center shrink-0"><svg
+            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L8 9.7a16 16 0 0 0 6.3 6.3l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2.1z" />
+          </svg></span>
+        اتصال مباشر بالدعم
+      </button>
+      <button
+        class="flex items-center gap-3 w-full px-3.5 py-3.5 mb-2 rounded-2xl border-[1.5px] border-white/70 bg-white/50 text-[14.5px] font-bold text-ink cursor-pointer"
+        id="supportChat">
+        <span class="w-[38px] h-[38px] rounded-xl bg-primary-light flex items-center justify-center shrink-0"><svg
+            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.5 8.5 0 0 1-3.8-.9L3 20l1-4.5a8.4 8.4 0 0 1-1-4A8.4 8.4 0 0 1 11.9 3a8.4 8.4 0 0 1 9.1 8.5z" />
+          </svg></span>
+        محادثة نصية مع الدعم
+      </button>
+      <button
+        class="w-full text-center py-3 mt-1 border-none bg-transparent font-bold text-ink-soft text-sm cursor-pointer"
+        id="supportClose">إغلاق</button>
     </div>
-    <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
-      <div class="flex justify-center mb-[22px]">
-        <div class="relative">
-          <div class="w-[84px] h-[84px] rounded-3xl bg-primary-light flex items-center justify-center"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></div>
-          <button class="absolute -bottom-1 -left-1 w-[30px] h-[30px] rounded-[10px] bg-primary border-[3px] border-white flex items-center justify-center cursor-pointer" id="avatarBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+
+    <div
+      class="toast absolute left-1/2 top-4 z-[60] bg-ink/90 backdrop-blur-md text-white px-[18px] py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap"
+      id="toast">جاري الاتصال بالدعم...</div>
+
+    <!-- ============ SUBSCREEN: profile ============ -->
+    <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-profile">
+      <div
+        class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]">
+      </div>
+      <div
+        class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
+        <button
+          class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0"
+          data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 6l6 6-6 6" />
+          </svg></button>
+        <h3 class="m-0 text-[16px] font-extrabold">البيانات الشخصية</h3>
+      </div>
+      <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
+        <div class="flex justify-center mb-[22px]">
+          <div class="relative">
+            <div class="w-[84px] h-[84px] rounded-3xl bg-primary-light flex items-center justify-center"><svg width="34"
+                height="34" viewBox="0 0 24 24" fill="none" stroke="#5C8F34" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+              </svg></div>
+            <button
+              class="absolute -bottom-1 -left-1 w-[30px] h-[30px] rounded-[10px] bg-primary border-[3px] border-white flex items-center justify-center cursor-pointer"
+              id="avatarBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+              </svg></button>
+          </div>
         </div>
-      </div>
-      <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">الاسم الكامل</label><input type="text" id="fldName" value="محمود عبد الله" class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary"></div>
-      <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">رقم الهاتف</label><input type="tel" id="fldPhone" value="01012345678" class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary"></div>
-      <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">البريد الإلكتروني</label><input type="email" id="fldEmail" placeholder="example@email.com" class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary"></div>
-      <div class="mb-4">
-        <label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">نوع المركبة</label>
-        <select id="fldVehicle" class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
-          <option>دراجة نارية</option>
-          <option>سيارة</option>
-          <option>دراجة هوائية</option>
-          <option>توك توك</option>
-        </select>
-      </div>
-      <button class="w-full border-none rounded-2xl py-[15px] mt-1.5 text-[15px] font-extrabold text-white bg-primary cursor-pointer shadow-[0_10px_22px_rgba(120,177,69,0.35)] active:scale-[0.98]" id="saveProfile">حفظ التغييرات</button>
-    </div>
-  </div>
-
-  <!-- ============ SUBSCREEN: payment ============ -->
-  <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-payment">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]"></div>
-    <div class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
-      <button class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0" data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-      <h3 class="m-0 text-[16px] font-extrabold">وسيلة الدفع والتحصيل</h3>
-    </div>
-    <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
-      <p class="text-[13.5px] text-ink-soft font-semibold mt-0 mb-4">اختر الوسيلة الافتراضية لاستلام أرباحك</p>
-      <div id="paymentList"></div>
-      <button class="flex items-center justify-center gap-2 w-full px-3.5 py-3.5 rounded-2xl border-[1.5px] border-dashed border-primary/55 bg-primary/10 font-bold text-sm text-primary-dark cursor-pointer mt-1.5" id="showAddPayment">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        إضافة وسيلة جديدة
-      </button>
-      <div class="hidden bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-[18px] mt-3.5" id="addPaymentForm">
-        <h5 class="m-0 mb-3 text-sm font-extrabold">وسيلة دفع جديدة</h5>
+        <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">الاسم الكامل</label><input
+            type="text" id="fldName" value="محمود عبد الله"
+            class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
+        </div>
+        <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">رقم الهاتف</label><input
+            type="tel" id="fldPhone" value="01012345678"
+            class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
+        </div>
+        <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">البريد
+            الإلكتروني</label><input type="email" id="fldEmail" placeholder="example@email.com"
+            class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
+        </div>
         <div class="mb-4">
-          <label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">نوع الوسيلة</label>
-          <select id="newPayType" class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary"><option>محفظة إلكترونية</option><option>حساب بنكي</option></select>
+          <label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">نوع المركبة</label>
+          <select id="fldVehicle"
+            class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
+            <option>دراجة نارية</option>
+            <option>سيارة</option>
+            <option>دراجة هوائية</option>
+            <option>توك توك</option>
+          </select>
         </div>
-        <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">اسم صاحب الحساب</label><input type="text" id="newPayName" placeholder="الاسم كما في الحساب" class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary"></div>
-        <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">رقم المحفظة / الآيبان</label><input type="text" id="newPayNumber" placeholder="مثال: 010XXXXXXXX" class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary"></div>
-        <button class="w-full border-none rounded-2xl py-[15px] mt-1.5 text-[15px] font-extrabold text-white bg-primary cursor-pointer shadow-[0_10px_22px_rgba(120,177,69,0.35)] active:scale-[0.98]" id="addPaymentBtn">إضافة الوسيلة</button>
+        <button
+          class="w-full border-none rounded-2xl py-[15px] mt-1.5 text-[15px] font-extrabold text-white bg-primary cursor-pointer shadow-[0_10px_22px_rgba(120,177,69,0.35)] active:scale-[0.98]"
+          id="saveProfile">حفظ التغييرات</button>
       </div>
     </div>
-  </div>
 
-  <!-- ============ SUBSCREEN: language ============ -->
-  <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-language">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]"></div>
-    <div class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
-      <button class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0" data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-      <h3 class="m-0 text-[16px] font-extrabold">اللغة</h3>
-    </div>
-    <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
-      <div id="languageList"></div>
-      <p class="text-xs text-ink-soft font-semibold text-center mt-3.5 leading-relaxed">سيتم دعم الترجمة الكاملة للغات الإضافية قريبًا — الواجهة حاليًا متاحة بالعربية بشكل كامل.</p>
-    </div>
-  </div>
-
-  <!-- ============ SUBSCREEN: about ============ -->
-  <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-about">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]"></div>
-    <div class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
-      <button class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0" data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-      <h3 class="m-0 text-[16px] font-extrabold">عن التطبيق</h3>
-    </div>
-    <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
-      <div class="flex flex-col items-center text-center px-2.5 pt-3 pb-1.5">
-        <div class="w-[74px] h-[74px] rounded-3xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center mb-3.5 shadow-[0_12px_24px_rgba(120,177,69,0.35)]"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
-        <h3 class="m-0 mb-1 text-[17px] font-extrabold">تطبيق السائق</h3>
-        <p class="m-0 text-[12.5px] text-ink-soft font-semibold">الإصدار 2.4.1 (Build 214)</p>
+    <!-- ============ SUBSCREEN: payment ============ -->
+    <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-payment">
+      <div
+        class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]">
       </div>
-      <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] mt-5">
-        <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer" id="aboutPrivacy"><div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="flex-1"><h6 class="m-0 text-sm font-bold">سياسة الخصوصية</h6></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6"/></svg></div>
-        <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer" id="aboutTerms"><div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/></svg></div><div class="flex-1"><h6 class="m-0 text-sm font-bold">الشروط والأحكام</h6></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6"/></svg></div>
-        <div class="flex items-center gap-3 px-4 py-3.5 cursor-pointer" id="aboutContact"><div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 6l8 6 8-6"/></svg></div><div class="flex-1"><h6 class="m-0 text-sm font-bold">تواصل معنا</h6></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2" stroke-linecap="round"><path d="M9 18l-6-6 6-6"/></svg></div>
+      <div
+        class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
+        <button
+          class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0"
+          data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 6l6 6-6 6" />
+          </svg></button>
+        <h3 class="m-0 text-[16px] font-extrabold">وسيلة الدفع والتحصيل</h3>
       </div>
-      <p class="text-center text-xs text-ink-soft font-semibold mt-6">صُنع بكل ❤️ لتسهيل رحلتك اليومية</p>
+      <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
+        <p class="text-[13.5px] text-ink-soft font-semibold mt-0 mb-4">اختر الوسيلة الافتراضية لاستلام أرباحك</p>
+        <div id="paymentList"></div>
+        <button
+          class="flex items-center justify-center gap-2 w-full px-3.5 py-3.5 rounded-2xl border-[1.5px] border-dashed border-primary/55 bg-primary/10 font-bold text-sm text-primary-dark cursor-pointer mt-1.5"
+          id="showAddPayment">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+            stroke-linecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          إضافة وسيلة جديدة
+        </button>
+        <div
+          class="hidden bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-[18px] mt-3.5"
+          id="addPaymentForm">
+          <h5 class="m-0 mb-3 text-sm font-extrabold">وسيلة دفع جديدة</h5>
+          <div class="mb-4">
+            <label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">نوع الوسيلة</label>
+            <select id="newPayType"
+              class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
+              <option>محفظة إلكترونية</option>
+              <option>حساب بنكي</option>
+            </select>
+          </div>
+          <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">اسم صاحب
+              الحساب</label><input type="text" id="newPayName" placeholder="الاسم كما في الحساب"
+              class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
+          </div>
+          <div class="mb-4"><label class="block text-[12.5px] font-bold text-ink-soft mb-1.5">رقم المحفظة /
+              الآيبان</label><input type="text" id="newPayNumber" placeholder="مثال: 010XXXXXXXX"
+              class="w-full px-3.5 py-3 rounded-2xl border-[1.5px] border-[#D8DED2] bg-white/75 text-sm font-semibold text-ink outline-none focus:border-primary">
+          </div>
+          <button
+            class="w-full border-none rounded-2xl py-[15px] mt-1.5 text-[15px] font-extrabold text-white bg-primary cursor-pointer shadow-[0_10px_22px_rgba(120,177,69,0.35)] active:scale-[0.98]"
+            id="addPaymentBtn">إضافة الوسيلة</button>
+        </div>
+      </div>
     </div>
+
+    <!-- ============ SUBSCREEN: language ============ -->
+    <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-language">
+      <div
+        class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]">
+      </div>
+      <div
+        class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
+        <button
+          class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0"
+          data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 6l6 6-6 6" />
+          </svg></button>
+        <h3 class="m-0 text-[16px] font-extrabold">اللغة</h3>
+      </div>
+      <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
+        <div id="languageList"></div>
+        <p class="text-xs text-ink-soft font-semibold text-center mt-3.5 leading-relaxed">سيتم دعم الترجمة الكاملة للغات
+          الإضافية قريبًا — الواجهة حاليًا متاحة بالعربية بشكل كامل.</p>
+      </div>
+    </div>
+
+    <!-- ============ SUBSCREEN: about ============ -->
+    <div class="subscreen absolute inset-0 z-[70] flex flex-col" id="sub-about">
+      <div
+        class="absolute inset-0 bg-[radial-gradient(circle_at_12%_-8%,rgba(120,177,69,0.32),transparent_45%),radial-gradient(circle_at_108%_18%,rgba(244,180,26,0.26),transparent_42%)] bg-[#F6F8F4]">
+      </div>
+      <div
+        class="relative flex items-center gap-3 shrink-0 px-5 py-4 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/60">
+        <button
+          class="w-9 h-9 rounded-xl border-none bg-white/70 flex items-center justify-center cursor-pointer shrink-0"
+          data-close-sub><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2.3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 6l6 6-6 6" />
+          </svg></button>
+        <h3 class="m-0 text-[16px] font-extrabold">عن التطبيق</h3>
+      </div>
+      <div class="relative flex-1 overflow-y-auto px-5 pt-5 pb-8">
+        <div class="flex flex-col items-center text-center px-2.5 pt-3 pb-1.5">
+          <div
+            class="w-[74px] h-[74px] rounded-3xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center mb-3.5 shadow-[0_12px_24px_rgba(120,177,69,0.35)]">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </div>
+          <h3 class="m-0 mb-1 text-[17px] font-extrabold">تطبيق المندوب</h3>
+          <p class="m-0 text-[12.5px] text-ink-soft font-semibold">الإصدار 2.4.1 (Build 214)</p>
+        </div>
+        <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] mt-5">
+          <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer"
+            id="aboutPrivacy">
+            <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17"
+                height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg></div>
+            <div class="flex-1">
+              <h6 class="m-0 text-sm font-bold">سياسة الخصوصية</h6>
+            </div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M9 18l-6-6 6-6" />
+            </svg>
+          </div>
+          <div class="flex items-center gap-3 px-4 py-3.5 border-b border-[#E6E9E1]/70 cursor-pointer" id="aboutTerms">
+            <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17"
+                height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M14 3v5h5" />
+                <path d="M6 3h8l5 5v13H6z" />
+              </svg></div>
+            <div class="flex-1">
+              <h6 class="m-0 text-sm font-bold">الشروط والأحكام</h6>
+            </div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M9 18l-6-6 6-6" />
+            </svg>
+          </div>
+          <div class="flex items-center gap-3 px-4 py-3.5 cursor-pointer" id="aboutContact">
+            <div class="w-9 h-9 rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="17"
+                height="17" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M4 4h16v16H4z" />
+                <path d="M4 6l8 6 8-6" />
+              </svg></div>
+            <div class="flex-1">
+              <h6 class="m-0 text-sm font-bold">تواصل معنا</h6>
+            </div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B7A" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M9 18l-6-6 6-6" />
+            </svg>
+          </div>
+        </div>
+        <p class="text-center text-xs text-ink-soft font-semibold mt-6">صُنع بكل ❤️ لتسهيل رحلتك اليومية</p>
+      </div>
+    </div>
+
   </div>
 
-</div>
+  <script>
+    const $ = id => document.getElementById(id);
 
-<script>
-  const $ = id => document.getElementById(id);
-
-  /* ---- screen navigation ---- */
-  const screens = document.querySelectorAll('.screen');
-  const menuItemsNav = document.querySelectorAll('.menu-item[data-screen]');
-  function setMenuActive(btn, active){
-    if(active){ btn.classList.add('bg-primary/20','text-primary-dark'); btn.classList.remove('bg-transparent'); btn.querySelector('svg').setAttribute('stroke','#5C8F34'); }
-    else { btn.classList.remove('bg-primary/20','text-primary-dark'); btn.classList.add('bg-transparent'); btn.querySelector('svg').setAttribute('stroke','currentColor'); }
-  }
-  function showScreen(name){
-    screens.forEach(s => s.classList.toggle('active', s.id === 'screen-'+name));
-    menuItemsNav.forEach(b => setMenuActive(b, b.dataset.screen === name));
-    const locate = $('locateBtn');
-    if(locate) locate.style.display = name==='home' ? 'flex' : 'none';
-  }
-  menuItemsNav.forEach(btn=>{
-    btn.addEventListener('click', ()=>{ showScreen(btn.dataset.screen); closeMenu(); });
-  });
-  $('logoutBtn').addEventListener('click', ()=>{ closeMenu(); toast('تم تسجيل الخروج'); });
-
-  /* ---- side menu ---- */
-  const sideMenu = $('sideMenu'), backdrop = $('backdrop');
-  function openMenu(){ sideMenu.classList.add('open'); backdrop.classList.add('show'); }
-  function closeMenu(){ sideMenu.classList.remove('open'); backdrop.classList.remove('show'); }
-  $('btnMenu').addEventListener('click', openMenu);
-  backdrop.addEventListener('click', () => { closeMenu(); closeSupport(); });
-
-  /* ---- support sheet ---- */
-  const supportSheet = $('supportSheet');
-  function openSupport(){ supportSheet.classList.add('open'); backdrop.classList.add('show'); }
-  function closeSupport(){ supportSheet.classList.remove('open'); backdrop.classList.remove('show'); }
-  $('btnSupport').addEventListener('click', openSupport);
-  $('supportClose').addEventListener('click', closeSupport);
-  function toast(msg){
-    const t = $('toast'); t.textContent = msg; t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'), 2200);
-  }
-  $('supportCall').addEventListener('click', ()=>{ closeSupport(); toast('جاري الاتصال بالدعم...'); });
-  $('supportChat').addEventListener('click', ()=>{ closeSupport(); showScreen('chat'); });
-
-  /* ---- bottom sheet: free drag with 3 snap points ---- */
-  const sheet = $('sheet'), handleZone = $('handleZone');
-  let snapPoints = [0, 0, 0];
-  let currentTranslate = 0;
-  let dragging = false, startY = 0, startTranslate = 0, moved = 0;
-
-  function computeSnapPoints(){
-    const full = sheet.offsetHeight;
-    const collapsed = Math.max(full - 70, 0);
-    const half = Math.max(full - 340, 0);
-    snapPoints = [0, Math.min(half, collapsed), collapsed];
-  }
-  function applyTranslate(y){
-    currentTranslate = y;
-    sheet.style.transform = `translateY(${y}px)`;
-  }
-  function nearestSnap(y){
-    return snapPoints.reduce((a,b)=> Math.abs(b-y) < Math.abs(a-y) ? b : a);
-  }
-  function snapTo(y){
-    sheet.style.transition = 'transform .3s cubic-bezier(.22,.85,.32,1)';
-    applyTranslate(y);
-  }
-  window.addEventListener('resize', computeSnapPoints);
-  setTimeout(()=>{ computeSnapPoints(); applyTranslate(0); }, 50);
-
-  handleZone.addEventListener('pointerdown', e=>{
-    dragging = true; moved = 0; startY = e.clientY; startTranslate = currentTranslate;
-    handleZone.setPointerCapture(e.pointerId);
-    sheet.style.transition = 'none';
-  });
-  handleZone.addEventListener('pointermove', e=>{
-    if(!dragging) return;
-    const delta = e.clientY - startY;
-    moved = Math.abs(delta);
-    const max = snapPoints[snapPoints.length-1];
-    applyTranslate(Math.min(Math.max(startTranslate + delta, 0), max));
-  });
-  function endDrag(){
-    if(!dragging) return;
-    dragging = false;
-    if(moved < 6){
-      const idx = snapPoints.indexOf(nearestSnap(currentTranslate));
-      const next = snapPoints[(idx + 1) % snapPoints.length];
-      snapTo(next);
-    } else {
-      snapTo(nearestSnap(currentTranslate));
+    /* ---- screen navigation ---- */
+    const screens = document.querySelectorAll('.screen');
+    const menuItemsNav = document.querySelectorAll('.menu-item[data-screen]');
+    function setMenuActive(btn, active) {
+      if (active) { btn.classList.add('bg-primary/20', 'text-primary-dark'); btn.classList.remove('bg-transparent'); btn.querySelector('svg').setAttribute('stroke', '#5C8F34'); }
+      else { btn.classList.remove('bg-primary/20', 'text-primary-dark'); btn.classList.add('bg-transparent'); btn.querySelector('svg').setAttribute('stroke', 'currentColor'); }
     }
-  }
-  handleZone.addEventListener('pointerup', endDrag);
-  handleZone.addEventListener('pointercancel', endDrag);
-
-  /* ---- pickup -> delivery flow ---- */
-  const cameraModal = $('cameraModal'), flash = $('flash'), camConfirm = $('camConfirm');
-  let pickedUp = false;
-
-  $('mainAction').addEventListener('click', ()=>{
-    if(!pickedUp){
-      cameraModal.classList.add('open');
-    } else {
-      toast('تم تسليم الطلب بنجاح 🎉');
+    function showScreen(name) {
+      screens.forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
+      menuItemsNav.forEach(b => setMenuActive(b, b.dataset.screen === name));
+      const locate = $('locateBtn');
+      if (locate) locate.style.display = name === 'home' ? 'flex' : 'none';
+      const support = $('btnSupport');
+      if (support) support.style.display = name === 'home' ? 'flex' : 'none';
+      const menuBtn = $('btnMenu');
+      if (menuBtn) menuBtn.style.display = (name === 'chat' || name === 'chat-customer') ? 'none' : 'flex';
     }
-  });
-  $('camClose').addEventListener('click', ()=> cameraModal.classList.remove('open'));
+    menuItemsNav.forEach(btn => {
+      btn.addEventListener('click', () => { showScreen(btn.dataset.screen); closeMenu(); });
+    });
+    $('logoutBtn').addEventListener('click', () => { closeMenu(); toast('تم تسجيل الخروج'); });
 
-  $('shutterBtn').addEventListener('click', ()=>{
-    flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
-    setTimeout(()=>{ camConfirm.classList.add('show'); }, 250);
-    setTimeout(()=>{
-      cameraModal.classList.remove('open');
-      camConfirm.classList.remove('show');
-      switchToDeliveryPhase();
-    }, 1500);
-  });
+    /* ---- side menu ---- */
+    const sideMenu = $('sideMenu'), backdrop = $('backdrop');
+    function openMenu() { sideMenu.classList.add('open'); backdrop.classList.add('show'); }
+    function closeMenu() { sideMenu.classList.remove('open'); backdrop.classList.remove('show'); }
+    $('btnMenu').addEventListener('click', openMenu);
+    backdrop.addEventListener('click', () => { closeMenu(); closeSupport(); });
 
-  function switchToDeliveryPhase(){
-    pickedUp = true;
-    $('statusStrip').classList.remove('bg-primary-light/85');
-    $('statusStrip').classList.add('bg-[#FDF2DC]/85');
-    $('statusStrip').querySelector('.dot').classList.remove('bg-primary','shadow-[0_0_0_4px_rgba(120,177,69,0.25)]');
-    $('statusStrip').querySelector('.dot').classList.add('bg-accent-dark','shadow-[0_0_0_4px_rgba(244,180,26,0.28)]');
-    $('statusText').classList.remove('text-primary-dark');
-    $('statusText').classList.add('text-accent-dark');
-    $('statusText').textContent = 'في الطريق لتسليم العميل';
-    $('sheetTitle').textContent = 'بيانات التسليم';
-    $('locLabel').textContent = 'موقع العميل';
-    $('locValue').textContent = 'برج النور، شارع مكرم عبيد، مدينة نصر';
-    $('personRow').classList.remove('hidden'); $('personRow').classList.add('flex');
-    $('priceLabel').textContent = 'مبلغ التحصيل من العميل';
-    $('priceValue').textContent = '310 ج.م';
-    $('priceBadge').textContent = 'تحصيل';
-    $('mainAction').classList.remove('bg-primary','shadow-[0_10px_22px_rgba(120,177,69,0.35)]');
-    $('mainAction').classList.add('bg-accent-dark','shadow-[0_10px_22px_rgba(216,154,14,0.35)]');
-    $('mainActionText').textContent = 'تأكيد تسليم الطلب';
-    $('mainAction').querySelector('svg').outerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
-    $('destPin').setAttribute('transform','translate(300,610)');
-    $('destPin').querySelector('path').setAttribute('fill','#D89A0E');
-    $('routePath').setAttribute('d','M195,540 C230,520 250,560 270,585 C285,600 295,600 300,610');
-    $('routePath').setAttribute('stroke','#D89A0E');
-    setTimeout(computeSnapPoints, 50);
-  }
+    /* ---- support sheet ---- */
+    const supportSheet = $('supportSheet');
+    function openSupport() { supportSheet.classList.add('open'); backdrop.classList.add('show'); }
+    function closeSupport() { supportSheet.classList.remove('open'); backdrop.classList.remove('show'); }
+    $('btnSupport').addEventListener('click', () => { showScreen('chat'); });
+    $('supportClose').addEventListener('click', closeSupport);
+    function toast(msg) {
+      const t = $('toast'); t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+    $('supportChatBack').addEventListener('click', () => { showScreen('home'); });
+    $('supportCall').addEventListener('click', () => { closeSupport(); toast('جاري الاتصال بالدعم...'); });
+    $('supportChat').addEventListener('click', () => { closeSupport(); showScreen('chat'); });
 
-  /* ---- orders screen data ---- */
-  const orders = [
-    {route:'مطعم كنتاكي ← أحمد المصري', num:'#48210', status:'done', label:'تم التسليم', price:'145 ج.م', time:'اليوم 9:20 ص'},
-    {route:'سوبر ماركت متجرى ← سارة حسن', num:'#48205', status:'done', label:'تم التسليم', price:'260 ج.م', time:'اليوم 8:05 ص'},
-    {route:'صيدلية العزبي ← كريم فتحي', num:'#48199', status:'cancel', label:'ملغي', price:'0 ج.م', time:'أمس 6:40 م'},
-    {route:'مطعم البيت الشامي ← أحمد المصري', num:'#48213', status:'progress', label:'جاري التنفيذ', price:'310 ج.م', time:'الآن'},
-    {route:'كافيه لاتيه ← منى سالم', num:'#48188', status:'done', label:'تم التسليم', price:'95 ج.م', time:'أمس 4:10 م'},
-    {route:'مطعم أبو حسين ← يوسف عادل', num:'#48176', status:'done', label:'تم التسليم', price:'220 ج.م', time:'أمس 1:00 م'},
-  ];
-  const statusClasses = {
-    done:'bg-primary/[0.18] text-primary-dark',
-    cancel:'bg-[#C0504D]/[0.14] text-[#B0413E]',
-    progress:'bg-accent/20 text-accent-dark'
-  };
-  function renderOrders(filter){
-    const list = $('ordersList');
-    const filtered = filter==='all' ? orders : orders.filter(o=>o.status===filter);
-    list.innerHTML = filtered.map(o => `
+    /* ---- customer chat entry point ---- */
+    $('personChatBtn').addEventListener('click', () => { showScreen('chat-customer'); });
+    $('custChatBack').addEventListener('click', () => { showScreen('home'); });
+
+    /* ---- bottom sheet: free drag with 3 snap points ---- */
+    const sheet = $('sheet'), handleZone = $('handleZone');
+    let snapPoints = [0, 0, 0];
+    let currentTranslate = 0;
+    let dragging = false, startY = 0, startTranslate = 0, moved = 0;
+
+    function computeSnapPoints() {
+      const full = sheet.offsetHeight;
+      const collapsed = Math.max(full - 70, 0);
+      const half = Math.max(full - 340, 0);
+      snapPoints = [0, Math.min(half, collapsed), collapsed];
+    }
+    function applyTranslate(y) {
+      currentTranslate = y;
+      sheet.style.transform = `translateY(${y}px)`;
+    }
+    function nearestSnap(y) {
+      return snapPoints.reduce((a, b) => Math.abs(b - y) < Math.abs(a - y) ? b : a);
+    }
+    function snapTo(y) {
+      sheet.style.transition = 'transform .3s cubic-bezier(.22,.85,.32,1)';
+      applyTranslate(y);
+    }
+    window.addEventListener('resize', computeSnapPoints);
+    setTimeout(() => { computeSnapPoints(); applyTranslate(0); }, 50);
+
+    handleZone.addEventListener('pointerdown', e => {
+      dragging = true; moved = 0; startY = e.clientY; startTranslate = currentTranslate;
+      handleZone.setPointerCapture(e.pointerId);
+      sheet.style.transition = 'none';
+    });
+    handleZone.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const delta = e.clientY - startY;
+      moved = Math.abs(delta);
+      const max = snapPoints[snapPoints.length - 1];
+      applyTranslate(Math.min(Math.max(startTranslate + delta, 0), max));
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      if (moved < 6) {
+        const idx = snapPoints.indexOf(nearestSnap(currentTranslate));
+        const next = snapPoints[(idx + 1) % snapPoints.length];
+        snapTo(next);
+      } else {
+        snapTo(nearestSnap(currentTranslate));
+      }
+    }
+    handleZone.addEventListener('pointerup', endDrag);
+    handleZone.addEventListener('pointercancel', endDrag);
+
+    /* ---- pickup -> delivery flow ---- */
+    const cameraModal = $('cameraModal'), flash = $('flash'), camConfirm = $('camConfirm');
+    let pickedUp = false;
+
+    $('mainAction').addEventListener('click', () => {
+      if (!pickedUp) {
+        cameraModal.classList.add('open');
+      } else {
+        toast('تم تسليم الطلب بنجاح 🎉');
+      }
+    });
+    $('camClose').addEventListener('click', () => cameraModal.classList.remove('open'));
+
+    $('shutterBtn').addEventListener('click', () => {
+      flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
+      setTimeout(() => { camConfirm.classList.add('show'); }, 250);
+      setTimeout(() => {
+        cameraModal.classList.remove('open');
+        camConfirm.classList.remove('show');
+        switchToDeliveryPhase();
+      }, 1500);
+    });
+
+    function switchToDeliveryPhase() {
+      pickedUp = true;
+      $('statusStrip').classList.remove('bg-primary-light/85');
+      $('statusStrip').classList.add('bg-[#FDF2DC]/85');
+      $('statusStrip').querySelector('.dot').classList.remove('bg-primary', 'shadow-[0_0_0_4px_rgba(120,177,69,0.25)]');
+      $('statusStrip').querySelector('.dot').classList.add('bg-accent-dark', 'shadow-[0_0_0_4px_rgba(244,180,26,0.28)]');
+      $('statusText').classList.remove('text-primary-dark');
+      $('statusText').classList.add('text-accent-dark');
+      $('statusText').textContent = 'في الطريق لتسليم العميل';
+      $('sheetTitle').textContent = 'بيانات التسليم';
+      $('locLabel').textContent = 'موقع العميل';
+      $('locValue').textContent = 'برج النور، شارع مكرم عبيد، مدينة نصر';
+      $('personRow').classList.remove('hidden'); $('personRow').classList.add('flex');
+      $('priceLabel').textContent = 'مبلغ التحصيل من العميل';
+      $('priceValue').textContent = '250 ج.م';
+      $('priceBadge').textContent = 'تحصيل';
+      $('mainAction').classList.remove('bg-primary', 'shadow-[0_10px_22px_rgba(120,177,69,0.35)]');
+      $('mainAction').classList.add('bg-accent-dark', 'shadow-[0_10px_22px_rgba(216,154,14,0.35)]');
+      $('mainActionText').textContent = 'تأكيد تسليم الطلب';
+      $('mainAction').querySelector('svg').outerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+      $('destPin').setAttribute('transform', 'translate(300,610)');
+      $('destPin').querySelector('path').setAttribute('fill', '#D89A0E');
+      $('routePath').setAttribute('d', 'M195,540 C230,520 250,560 270,585 C285,600 295,600 300,610');
+      $('routePath').setAttribute('stroke', '#D89A0E');
+      setTimeout(computeSnapPoints, 50);
+    }
+
+    /* ---- orders screen data ---- */
+    const orders = [
+      { route: 'مطعم كنتاكي ← أحمد المصري', num: '#48210', status: 'done', label: 'تم التسليم', price: '145 ج.م', time: 'اليوم 9:20 ص' },
+      { route: 'سوبر ماركت متجرى ← سارة حسن', num: '#48205', status: 'done', label: 'تم التسليم', price: '260 ج.م', time: 'اليوم 8:05 ص' },
+      { route: 'صيدلية العزبي ← كريم فتحي', num: '#48199', status: 'cancel', label: 'ملغي', price: '0 ج.م', time: 'أمس 6:40 م' },
+      { route: 'مطعم البيت الشامي ← أحمد المصري', num: '#48213', status: 'progress', label: 'جاري التنفيذ', price: '310 ج.م', time: 'الآن' },
+      { route: 'كافيه لاتيه ← منى سالم', num: '#48188', status: 'done', label: 'تم التسليم', price: '95 ج.م', time: 'أمس 4:10 م' },
+      { route: 'مطعم أبو حسين ← يوسف عادل', num: '#48176', status: 'done', label: 'تم التسليم', price: '220 ج.م', time: 'أمس 1:00 م' },
+    ];
+    const statusClasses = {
+      done: 'bg-primary/[0.18] text-primary-dark',
+      cancel: 'bg-[#C0504D]/[0.14] text-[#B0413E]',
+      progress: 'bg-accent/20 text-accent-dark'
+    };
+    function renderOrders(filter) {
+      const list = $('ordersList');
+      const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter);
+      list.innerHTML = filtered.map(o => `
       <div class="bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-4 mb-3">
         <div class="flex justify-between items-start mb-2.5">
           <div><div class="text-sm font-extrabold">${o.route}</div><div class="text-[11.5px] text-ink-soft font-bold">${o.num}</div></div>
@@ -707,48 +1452,48 @@
           <span>${o.time}</span><span class="text-[15px] font-extrabold text-ink">${o.price}</span>
         </div>
       </div>`).join('') || '<p class="text-[13.5px] text-ink-soft font-semibold">لا توجد طلبات في هذا القسم</p>';
-  }
-  renderOrders('all');
-  document.querySelectorAll('.chip').forEach(chip=>{
-    chip.addEventListener('click', ()=>{
-      document.querySelectorAll('.chip').forEach(c=>{
-        c.classList.remove('active','bg-primary','text-white','border-primary');
-        c.classList.add('bg-white/50','text-ink-soft','border-white/70');
+    }
+    renderOrders('all');
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.chip').forEach(c => {
+          c.classList.remove('active', 'bg-primary', 'text-white', 'border-primary');
+          c.classList.add('bg-white/50', 'text-ink-soft', 'border-white/70');
+        });
+        chip.classList.add('active', 'bg-primary', 'text-white', 'border-primary');
+        chip.classList.remove('bg-white/50', 'text-ink-soft', 'border-white/70');
+        renderOrders(chip.dataset.filter);
       });
-      chip.classList.add('active','bg-primary','text-white','border-primary');
-      chip.classList.remove('bg-white/50','text-ink-soft','border-white/70');
-      renderOrders(chip.dataset.filter);
     });
-  });
 
-  /* ---- earnings screen data ---- */
-  const week = [
-    {d:'سبت', v:420}, {d:'أحد', v:560}, {d:'اثنين', v:380}, {d:'ثلاثاء', v:610},
-    {d:'أربعاء', v:490}, {d:'خميس', v:530}, {d:'اليوم', v:742}
-  ];
-  const maxV = Math.max(...week.map(w=>w.v));
-  $('weekBars').innerHTML = week.map((w,i)=>`
+    /* ---- earnings screen data ---- */
+    const week = [
+      { d: 'سبت', v: 420 }, { d: 'أحد', v: 560 }, { d: 'اثنين', v: 380 }, { d: 'ثلاثاء', v: 610 },
+      { d: 'أربعاء', v: 490 }, { d: 'خميس', v: 530 }, { d: 'اليوم', v: 742 }
+    ];
+    const maxV = Math.max(...week.map(w => w.v));
+    $('weekBars').innerHTML = week.map((w, i) => `
     <div class="flex-1 flex flex-col items-center justify-end h-full gap-1.5">
-      <div class="w-full rounded-t-lg rounded-b-[4px] ${i===week.length-1 ? 'bg-gradient-to-b from-accent to-accent-dark' : 'bg-gradient-to-b from-primary to-primary-dark'}" style="height:${Math.round((w.v/maxV)*90)}px"></div>
+      <div class="w-full rounded-t-lg rounded-b-[4px] ${i === week.length - 1 ? 'bg-gradient-to-b from-accent to-accent-dark' : 'bg-gradient-to-b from-primary to-primary-dark'}" style="height:${Math.round((w.v / maxV) * 90)}px"></div>
       <span class="text-[10.5px] text-ink-soft font-bold">${w.d}</span>
     </div>`).join('');
-  $('dayList').innerHTML = week.slice(-5).map(w=>`
+    $('dayList').innerHTML = week.slice(-5).map(w => `
     <div class="flex justify-between items-center py-2.5 px-1 border-b border-[#E6E9E1]/70 text-[13.5px] font-bold last:border-b-0"><span>${w.d}</span><span>${w.v} ج.م</span></div>`).join('');
 
-  /* ---- notifications screen data ---- */
-  const notifs = [
-    {icon:'order', title:'طلب جديد متاح', body:'طلب جديد بقيمة 310 ج.م بالقرب منك — مطعم البيت الشامي', time:'منذ 5 دقائق', unread:true, accent:false},
-    {icon:'money', title:'تم إيداع أرباحك', body:'تم تحويل 742 ج.م إلى محفظتك بنجاح', time:'منذ ساعتين', unread:true, accent:true},
-    {icon:'alert', title:'تنبيه من الدعم', body:'يرجى مراجعة صورة الاستلام الخاصة بالطلب #48199', time:'أمس 5:30 م', unread:false, accent:false},
-    {icon:'badge', title:'وصلت لتقييم 4.9 ⭐', body:'استمر في تقديم خدمة ممتازة للعملاء', time:'أمس 12:00 م', unread:false, accent:true},
-  ];
-  const icons = {
-    order:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
-    money:'<path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/>',
-    alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/>',
-    badge:'<circle cx="12" cy="8" r="6"/><path d="M9 14l-2 7 5-3 5 3-2-7"/>'
-  };
-  $('notifList').innerHTML = notifs.map(n=>`
+    /* ---- notifications screen data ---- */
+    const notifs = [
+      { icon: 'order', title: 'طلب جديد متاح', body: 'طلب جديد بقيمة 310 ج.م بالقرب منك — مطعم البيت الشامي', time: 'منذ 5 دقائق', unread: true, accent: false },
+      { icon: 'money', title: 'تم إيداع أرباحك', body: 'تم تحويل 742 ج.م إلى محفظتك بنجاح', time: 'منذ ساعتين', unread: true, accent: true },
+      { icon: 'alert', title: 'تنبيه من الدعم', body: 'يرجى مراجعة صورة الاستلام الخاصة بالطلب #48199', time: 'أمس 5:30 م', unread: false, accent: false },
+      { icon: 'badge', title: 'وصلت لتقييم 4.9 ⭐', body: 'استمر في تقديم خدمة ممتازة للعملاء', time: 'أمس 12:00 م', unread: false, accent: true },
+    ];
+    const icons = {
+      order: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+      money: '<path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/>',
+      alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/>',
+      badge: '<circle cx="12" cy="8" r="6"/><path d="M9 14l-2 7 5-3 5 3-2-7"/>'
+    };
+    $('notifList').innerHTML = notifs.map(n => `
     <div class="relative bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] p-3.5 mb-2.5 flex gap-3">
       ${n.unread ? '<span class="absolute top-3.5 left-3.5 w-2 h-2 rounded-full bg-accent-dark"></span>' : ''}
       <div class="w-[42px] h-[42px] rounded-2xl ${n.accent ? 'bg-accent/20' : 'bg-primary-light'} flex items-center justify-center shrink-0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${n.accent ? '#D89A0E' : '#5C8F34'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icons[n.icon]}</svg></div>
@@ -759,131 +1504,156 @@
       </div>
     </div>`).join('');
 
-  /* ---- settings toggles ---- */
-  document.querySelectorAll('[data-toggle]').forEach(sw=>{
-    sw.addEventListener('click', ()=> sw.classList.toggle('on'));
-  });
-
-  /* ---- chat ---- */
-  const chatMessages = $('chatMessages'), chatInput = $('chatInput');
-  function addMessage(text, sent){
-    const row = document.createElement('div');
-    row.className = 'flex ' + (sent ? 'justify-end' : 'justify-start');
-    const now = new Date();
-    const time = (now.getHours()<10?'0':'')+now.getHours()+':'+(now.getMinutes()<10?'0':'')+now.getMinutes();
-    const bubbleClasses = sent
-      ? 'max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white'
-      : 'max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80';
-    row.innerHTML = `<div class="${bubbleClasses}">${text}<span class="block text-[10px] mt-1 opacity-75 font-semibold">${time}</span></div>`;
-    chatMessages.appendChild(row);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
-  function sendChat(){
-    const val = chatInput.value.trim();
-    if(!val) return;
-    addMessage(val, true);
-    chatInput.value = '';
-    setTimeout(()=> addMessage('تم استلام رسالتك، جاري المتابعة معك الآن 🙏', false), 1000);
-  }
-  $('sendBtn').addEventListener('click', sendChat);
-  chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat(); });
-
-  /* ---- settings sub-screens ---- */
-  function openSub(name){ $('sub-'+name).classList.add('open'); }
-  document.querySelectorAll('[data-open]').forEach(row=>{
-    row.addEventListener('click', ()=> openSub(row.dataset.open));
-  });
-  document.querySelectorAll('[data-close-sub]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.subscreen.open').forEach(s=>s.classList.remove('open'));
+    /* ---- settings toggles ---- */
+    document.querySelectorAll('[data-toggle]').forEach(sw => {
+      sw.addEventListener('click', () => sw.classList.toggle('on'));
     });
-  });
 
-  /* -- profile -- */
-  $('avatarBtn').addEventListener('click', ()=> toast('قريبًا: تغيير صورة الملف الشخصي'));
-  $('saveProfile').addEventListener('click', ()=>{
-    const name = $('fldName').value.trim() || 'محمود عبد الله';
-    $('profileSummary').textContent = 'الاسم، الصورة، رقم الهاتف';
-    document.querySelector('.side-menu h3').textContent = name;
-    $('sub-profile').classList.remove('open');
-    toast('تم حفظ التغييرات بنجاح');
-  });
+    /* ---- chat (support) ---- */
+    const chatMessages = $('chatMessages'), chatInput = $('chatInput');
+    function addMessage(text, sent) {
+      const row = document.createElement('div');
+      row.className = 'flex ' + (sent ? 'justify-end' : 'justify-start');
+      const now = new Date();
+      const time = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+      const bubbleClasses = sent
+        ? 'max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white'
+        : 'max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80';
+      row.innerHTML = `<div class="${bubbleClasses}">${text}<span class="block text-[10px] mt-1 opacity-75 font-semibold">${time}</span></div>`;
+      chatMessages.appendChild(row);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    function sendChat() {
+      const val = chatInput.value.trim();
+      if (!val) return;
+      addMessage(val, true);
+      chatInput.value = '';
+      setTimeout(() => addMessage('تم استلام رسالتك، جاري المتابعة معك الآن 🙏', false), 1000);
+    }
+    $('sendBtn').addEventListener('click', sendChat);
+    chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 
-  /* -- payment methods -- */
-  let paymentMethods = [
-    {id:1, type:'wallet', name:'فودافون كاش', detail:'010•••5678', selected:true},
-    {id:2, type:'bank', name:'حساب بنكي — CIB', detail:'IBAN ****4521', selected:false},
-  ];
-  function paymentIcon(type){
-    return type==='wallet'
-      ? '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1.4" fill="currentColor" stroke="none"/>'
-      : '<rect x="2" y="7" width="20" height="13" rx="2"/><path d="M2 11h20"/><path d="M6 15h4"/>';
-  }
-  function renderPayments(){
-    $('paymentList').innerHTML = paymentMethods.map(p => `
-      <div class="radio-card ${p.selected?'selected':''} bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] flex items-center gap-3 p-[15px] mb-2.5 cursor-pointer" data-pay="${p.id}">
+    /* ---- chat (customer) ---- */
+    const custChatMessages = $('custChatMessages'), custChatInput = $('custChatInput');
+    function addCustMessage(text, sent) {
+      const row = document.createElement('div');
+      row.className = 'flex ' + (sent ? 'justify-end' : 'justify-start');
+      const now = new Date();
+      const time = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+      const bubbleClasses = sent
+        ? 'max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-semibold leading-relaxed bg-primary text-white'
+        : 'max-w-[74%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-semibold leading-relaxed bg-white/85 border border-[#E6E9E1]/80';
+      row.innerHTML = `<div class="${bubbleClasses}">${text}<span class="block text-[10px] mt-1 opacity-75 font-semibold">${time}</span></div>`;
+      custChatMessages.appendChild(row);
+      custChatMessages.scrollTop = custChatMessages.scrollHeight;
+    }
+    function sendCustChat() {
+      const val = custChatInput.value.trim();
+      if (!val) return;
+      addCustMessage(val, true);
+      custChatInput.value = '';
+      setTimeout(() => addCustMessage('تمام يا فندم، هوصل بسرعة 🙏', false), 1000);
+    }
+    $('custSendBtn').addEventListener('click', sendCustChat);
+    custChatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendCustChat(); });
+
+    /* ---- settings sub-screens ---- */
+    function openSub(name) { $('sub-' + name).classList.add('open'); }
+    document.querySelectorAll('[data-open]').forEach(row => {
+      row.addEventListener('click', () => openSub(row.dataset.open));
+    });
+    document.querySelectorAll('[data-close-sub]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.subscreen.open').forEach(s => s.classList.remove('open'));
+      });
+    });
+
+    /* -- profile -- */
+    $('avatarBtn').addEventListener('click', () => toast('قريبًا: تغيير صورة الملف الشخصي'));
+    $('saveProfile').addEventListener('click', () => {
+      const name = $('fldName').value.trim() || 'محمود عبد الله';
+      $('profileSummary').textContent = 'الاسم، الصورة، رقم الهاتف';
+      document.querySelector('.side-menu h3').textContent = name;
+      $('sub-profile').classList.remove('open');
+      toast('تم حفظ التغييرات بنجاح');
+    });
+
+    /* -- payment methods -- */
+    let paymentMethods = [
+      { id: 1, type: 'wallet', name: 'فودافون كاش', detail: '010•••5678', selected: true },
+      { id: 2, type: 'bank', name: 'حساب بنكي — CIB', detail: 'IBAN ****4521', selected: false },
+    ];
+    function paymentIcon(type) {
+      return type === 'wallet'
+        ? '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1.4" fill="currentColor" stroke="none"/>'
+        : '<rect x="2" y="7" width="20" height="13" rx="2"/><path d="M2 11h20"/><path d="M6 15h4"/>';
+    }
+    function renderPayments() {
+      $('paymentList').innerHTML = paymentMethods.map(p => `
+      <div class="radio-card ${p.selected ? 'selected' : ''} bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] flex items-center gap-3 p-[15px] mb-2.5 cursor-pointer" data-pay="${p.id}">
         <div class="w-[38px] h-[38px] rounded-xl bg-[#F5F7F3]/90 flex items-center justify-center shrink-0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paymentIcon(p.type)}</svg></div>
-        <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">${p.name} ${p.selected?'<span class="text-[10.5px] font-extrabold text-primary-dark bg-primary-light px-2 py-1 rounded-lg ms-1.5">افتراضي</span>':''}</h6><p class="m-0 text-xs text-ink-soft font-semibold">${p.detail}</p></div>
+        <div class="flex-1"><h6 class="m-0 mb-0.5 text-sm font-bold">${p.name} ${p.selected ? '<span class="text-[10.5px] font-extrabold text-primary-dark bg-primary-light px-2 py-1 rounded-lg ms-1.5">افتراضي</span>' : ''}</h6><p class="m-0 text-xs text-ink-soft font-semibold">${p.detail}</p></div>
         <div class="radio-dot"></div>
       </div>`).join('');
-    document.querySelectorAll('[data-pay]').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const id = Number(el.dataset.pay);
-        paymentMethods.forEach(p => p.selected = (p.id === id));
-        renderPayments();
-        const chosen = paymentMethods.find(p=>p.id===id);
-        $('paymentSummary').textContent = chosen.name;
-        toast('تم تعيين ' + chosen.name + ' كوسيلة افتراضية');
+      document.querySelectorAll('[data-pay]').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = Number(el.dataset.pay);
+          paymentMethods.forEach(p => p.selected = (p.id === id));
+          renderPayments();
+          const chosen = paymentMethods.find(p => p.id === id);
+          $('paymentSummary').textContent = chosen.name;
+          toast('تم تعيين ' + chosen.name + ' كوسيلة افتراضية');
+        });
       });
-    });
-  }
-  renderPayments();
-  $('showAddPayment').addEventListener('click', ()=>{
-    const form = $('addPaymentForm');
-    form.classList.toggle('hidden');
-  });
-  $('addPaymentBtn').addEventListener('click', ()=>{
-    const type = $('newPayType').value === 'حساب بنكي' ? 'bank' : 'wallet';
-    const name = $('newPayName').value.trim();
-    const number = $('newPayNumber').value.trim();
-    if(!name || !number){ toast('من فضلك أكمل بيانات الوسيلة'); return; }
-    paymentMethods.push({id: Date.now(), type, name: (type==='bank'?'حساب بنكي — ':'محفظة — ')+name, detail: number, selected:false});
+    }
     renderPayments();
-    $('newPayName').value=''; $('newPayNumber').value='';
-    $('addPaymentForm').classList.add('hidden');
-    toast('تمت إضافة وسيلة الدفع بنجاح');
-  });
-
-  /* -- language -- */
-  const languages = [
-    {code:'ar', name:'العربية', native:'AR', selected:true},
-    {code:'en', name:'English', native:'EN', selected:false},
-    {code:'fr', name:'Français', native:'FR', selected:false},
-  ];
-  function renderLanguages(){
-    $('languageList').innerHTML = languages.map(l => `
-      <div class="lang-row ${l.selected?'selected':''} bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] flex items-center justify-between p-[15px] mb-2.5 cursor-pointer" data-lang="${l.code}">
-        <div class="flex items-center gap-3"><div class="w-[34px] h-[34px] rounded-xl bg-primary-light flex items-center justify-center text-sm font-extrabold text-primary-dark">${l.native}</div><div><h6 class="m-0 text-sm font-bold">${l.name}</h6></div></div>
-        <div class="lang-check">${l.selected?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>':''}</div>
-      </div>`).join('');
-    document.querySelectorAll('[data-lang]').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const code = el.dataset.lang;
-        languages.forEach(l => l.selected = (l.code === code));
-        renderLanguages();
-        const chosen = languages.find(l=>l.code===code);
-        $('languageSummary').textContent = chosen.name;
-        toast('تم تحديد اللغة: ' + chosen.name);
-      });
+    $('showAddPayment').addEventListener('click', () => {
+      const form = $('addPaymentForm');
+      form.classList.toggle('hidden');
     });
-  }
-  renderLanguages();
+    $('addPaymentBtn').addEventListener('click', () => {
+      const type = $('newPayType').value === 'حساب بنكي' ? 'bank' : 'wallet';
+      const name = $('newPayName').value.trim();
+      const number = $('newPayNumber').value.trim();
+      if (!name || !number) { toast('من فضلك أكمل بيانات الوسيلة'); return; }
+      paymentMethods.push({ id: Date.now(), type, name: (type === 'bank' ? 'حساب بنكي — ' : 'محفظة — ') + name, detail: number, selected: false });
+      renderPayments();
+      $('newPayName').value = ''; $('newPayNumber').value = '';
+      $('addPaymentForm').classList.add('hidden');
+      toast('تمت إضافة وسيلة الدفع بنجاح');
+    });
 
-  /* -- about -- */
-  $('aboutPrivacy').addEventListener('click', ()=> toast('سياسة الخصوصية — قريبًا'));
-  $('aboutTerms').addEventListener('click', ()=> toast('الشروط والأحكام — قريبًا'));
-  $('aboutContact').addEventListener('click', ()=>{ $('sub-about').classList.remove('open'); showScreen('chat'); });
-</script>
+    /* -- language -- */
+    const languages = [
+      { code: 'ar', name: 'العربية', native: 'AR', selected: true },
+      { code: 'en', name: 'English', native: 'EN', selected: false },
+      { code: 'fr', name: 'Français', native: 'FR', selected: false },
+    ];
+    function renderLanguages() {
+      $('languageList').innerHTML = languages.map(l => `
+      <div class="lang-row ${l.selected ? 'selected' : ''} bg-white/60 backdrop-blur-lg backdrop-saturate-150 border border-white/70 rounded-[20px] flex items-center justify-between p-[15px] mb-2.5 cursor-pointer" data-lang="${l.code}">
+        <div class="flex items-center gap-3"><div class="w-[34px] h-[34px] rounded-xl bg-primary-light flex items-center justify-center text-sm font-extrabold text-primary-dark">${l.native}</div><div><h6 class="m-0 text-sm font-bold">${l.name}</h6></div></div>
+        <div class="lang-check">${l.selected ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' : ''}</div>
+      </div>`).join('');
+      document.querySelectorAll('[data-lang]').forEach(el => {
+        el.addEventListener('click', () => {
+          const code = el.dataset.lang;
+          languages.forEach(l => l.selected = (l.code === code));
+          renderLanguages();
+          const chosen = languages.find(l => l.code === code);
+          $('languageSummary').textContent = chosen.name;
+          toast('تم تحديد اللغة: ' + chosen.name);
+        });
+      });
+    }
+    renderLanguages();
+
+    /* -- about -- */
+    $('aboutPrivacy').addEventListener('click', () => toast('سياسة الخصوصية — قريبًا'));
+    $('aboutTerms').addEventListener('click', () => toast('الشروط والأحكام — قريبًا'));
+    $('aboutContact').addEventListener('click', () => { $('sub-about').classList.remove('open'); showScreen('chat'); });
+  </script>
 
 </body>
+
 </html>
